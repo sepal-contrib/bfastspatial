@@ -25,7 +25,7 @@ print("Starting the process")
 options(stringsAsFactors=FALSE)
 options(shiny.launch.browser=T)
 
-source("load_packages.R",echo = TRUE)
+source("www/scripts/load_packages.R",echo = TRUE)
 
 
 

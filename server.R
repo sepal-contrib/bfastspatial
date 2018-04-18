@@ -29,19 +29,19 @@ shinyServer(function(input, output, session) {
   ####################################################################################
   output$chosen_language <- renderPrint({
     if (input$language == "English") {
-      source("text_english.R",
+      source("www/scripts/text_english.R",
              local = TRUE,
              encoding = "UTF-8")
       #print("en")
     }
     if (input$language == "Français") {
-      source("text_french.R", 
+      source("www/scripts/text_french.R", 
              local = TRUE, 
              encoding = "UTF-8")
       #print("fr")
     }
     if (input$language == "Español") {
-      source("text_spanish.R",
+      source("www/scripts/text_spanish.R",
              local = TRUE,
              encoding = "UTF-8")
       #print("sp")
