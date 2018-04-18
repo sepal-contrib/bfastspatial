@@ -292,6 +292,7 @@ shinyServer(function(input, output, session) {
   ############### Insert the start button
   output$StartButton <- renderUI({
     req(input$time_series_dir)
+    validate(need(input$option_formula, "Missing input: Please select at least one element in the formula"))
     actionButton('bfastStartButton', textOutput('start_button'))
   })
   
