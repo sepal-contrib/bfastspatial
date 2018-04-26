@@ -115,6 +115,7 @@ shinyUI(
                       br(),
                       htmlOutput('body_output_dir'),
                       textOutput("outdirpath"),
+                      uiOutput("ui_tiles"),
                       br(),
                       shinyFilesButton(id = 'mask_file',
                                        label = "Forest / Non-Forest mask",  

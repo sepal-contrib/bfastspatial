@@ -124,12 +124,11 @@ shinyServer(function(input, output, session) {
     validate(need(input$time_series_dir, "Missing input: Please select time series folder"))
     req(input$time_series_dir)
     df <- parseDirPath(volumes, input$time_series_dir)
-    
   })
   
   ################################# Display tiles inside the DATA_DIR
   output$outdirpath = renderPrint({
-    list.dirs(data_dir(),recursive = F)
+    basename(list.dirs(data_dir(),recursive = F))
   })
   
   ################################# Output directory path
@@ -252,13 +251,16 @@ shinyServer(function(input, output, session) {
     )
   })
   
-
-  ##################################################################################################################################
-  ############### Insert the parameter validation button
-  output$validParam <- renderUI({
+  output$ui_tiles <- renderUI({
     req(input$time_series_dir)
-    actionButton('validParamButton', textOutput('valid_param_button'))
+    selectInput(inputId = "option_tiles",
+                label = "Which tiles do you want to process ?",
+                choices = basename(list.dirs(data_dir(),recursive = F)),
+                selected= basename(list.dirs(data_dir(),recursive = F)),
+                multiple = TRUE
+    )
   })
+  
   
   ##################################################################################################################################
   ############### Parameters title as a reactive
@@ -292,6 +294,7 @@ shinyServer(function(input, output, session) {
   ############### Insert the start button
   output$StartButton <- renderUI({
     req(input$time_series_dir)
+    validate(need(input$option_tiles, "Missing input: Please select at least one tile to process"))
     validate(need(input$option_formula, "Missing input: Please select at least one element in the formula"))
     actionButton('bfastStartButton', textOutput('start_button'))
   })
@@ -332,7 +335,9 @@ shinyServer(function(input, output, session) {
                                
                                print(title)
                                
-                               for(the_dir in list.dirs(data_dir, recursive=FALSE)){
+                               tiles <- input$option_tiles
+                               
+                               for(the_dir in tiles){#list.dirs(data_dir, recursive=FALSE)){
                                  
                                  withProgress(message = paste0('BFAST running for ',the_dir),
                                               value = 0,
