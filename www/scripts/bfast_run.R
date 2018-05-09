@@ -23,7 +23,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
     mask_file_path     <- mask_file_path()
     data_input_msk     <- paste0(the_dir,'/','mask_FNF.tif')
     data_input_vrt_nd  <- paste0(the_dir,'/','stack_ND.tif')
-    data_input_vrt_msk <- paste0(the_dir,'/','stack_FNF.tif')
+    data_input_tif_msk <- paste0(the_dir,'/','stack_FNF.tif')
     
     #################### ALIGN 
     input  <- mask_file_path
