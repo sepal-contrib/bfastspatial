@@ -50,7 +50,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
     
     
     #################### MULTIPLY THE TIME SERIES STACK BY MASK
-    system(sprintf("gdal_calc.py -A %s -B %s --allBands=A --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+    system(sprintf("gdal_calc.py -A %s -B %s --allBands=A --overwrite --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
                    data_input_vrt_nd,
                    data_input_msk,
                    data_input_tif_msk,
