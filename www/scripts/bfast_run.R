@@ -22,14 +22,15 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
     if(input$option_useMask == "FNF Mask" ){
     mask_file_path     <- mask_file_path()
     data_input_msk     <- paste0(the_dir,'/','mask_FNF.tif')
-    data_input_vrt_msk <- paste0(the_dir,'/','stack_FNF.vrt')
+    data_input_vrt_nd  <- paste0(the_dir,'/','stack_ND.tif')
+    data_input_vrt_msk <- paste0(the_dir,'/','stack_FNF.tif')
     
     #################### ALIGN 
     input  <- mask_file_path
     ouput  <- data_input_msk
     mask   <- data_input_vrt
     
-    system(sprintf("gdalwarp -co COMPRESS=LZW -t_srs \"%s\" -te %s %s %s %s -tr %s %s %s %s -overwrite",
+    system(sprintf("gdalwarp -ot UInt16 -co COMPRESS=LZW -t_srs \"%s\" -te %s %s %s %s -tr %s %s %s %s -overwrite",
                    proj4string(raster(mask)),
                    extent(raster(mask))@xmin,
                    extent(raster(mask))@ymin,
@@ -41,11 +42,18 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
                    ouput
     ))
     
-    #################### CREATE GFC TREE COVER MAP in 2004 AT THRESHOLD
-    system(sprintf("gdal_calc.py -A %s -B %s --allBands=A --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+    #################### SET NODATA TO NONE IN THE TIME SERIES STACK
+    system(sprintf("gdal_translate -a_nodata none -co COMPRESS=LZW %s %s",
                    data_input_vrt,
+                   data_input_vrt_nd
+                   ))
+    
+    
+    #################### MULTIPLY THE TIME SERIES STACK BY MASK
+    system(sprintf("gdal_calc.py -A %s -B %s --allBands=A --co COMPRESS=LZW --outfile=%s --calc=\"%s\"",
+                   data_input_vrt_nd,
                    data_input_msk,
-                   data_input_vrt_msk,
+                   data_input_tif_msk,
                    paste0("A*B")
     ))
     the_stack      <- brick(data_input_vrt_msk)
