@@ -56,7 +56,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
                    data_input_tif_msk,
                    paste0("A*B")
     ))
-    the_stack      <- brick(data_input_vrt_msk)
+    the_stack      <- brick(data_input_tif_msk)
     }
   }, error=function(e){})
   
