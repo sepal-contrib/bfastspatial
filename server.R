@@ -143,13 +143,13 @@ shinyServer(function(input, output, session) {
     req(data_dir())
     data_dir <- data_dir()
     list <- list.files(data_dir,pattern = "_stack.tif",recursive = T)
-    
     unlist(lapply(list,function(x){unlist(strsplit(x,split = "_"))[length(unlist(strsplit(x,split = "_")))-1]}))
   })
   
   ################################# Take the minimum as beginning Date
   beg_year <- reactive({
     req(list_year())
+    validate(need(list_year(), "Missing time series data, make sure the data has been downloaded properly"))
     min(list_year())
   })
   
@@ -158,7 +158,6 @@ shinyServer(function(input, output, session) {
     req(list_year())
     max(list_year())
   })
-  
   
   ##################################################################################################################################
   ############### Option buttons --> KEEP IF ARCHIVE READING IS NOT OPTIMAL
@@ -183,8 +182,8 @@ shinyServer(function(input, output, session) {
   
   ################################# Take the average date for the beginning of monitoring period
   output$ui_option_m_beg <- renderUI({
+    # validate(need(beg_year()!=end_year(), "Need data from multiple years"))
     req(input$time_series_dir)
-    
     sliderInput(inputId = 'option_m_beg',
                 label = textOutput("text_option_date_break"),
                 min = as.numeric(beg_year()),
@@ -243,7 +242,7 @@ shinyServer(function(input, output, session) {
   
   output$ui_option_useMask <- renderUI({
     req(input$time_series_dir)
-    req(input$mask_file)
+    # req(input$mask_file)
     selectInput(inputId = "option_useMask",
                 label = "Use a Forest/Non-Forest mask ?",
                 choices = c("No Mask","FNF Mask"),#,"Sequential"),
@@ -368,10 +367,25 @@ shinyServer(function(input, output, session) {
   })
   
   ############### Display the results as map
-  output$display_res <- renderPlot({
-    req(bfast_res())
+  ## render the map
+  output$display_res  <-  renderLeaflet({
     print('Check: Display the map')
-    plot(bfast_res(), axes = FALSE)
+    req(bfast_res())
+    pal <- colorNumeric(c(  "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"), values(bfast_res()),
+                        na.color = "transparent")
+    m <- leaflet() %>% addTiles() %>%
+      addProviderTiles('Esri.WorldImagery') %>% 
+      addProviderTiles("CartoDB.PositronOnlyLabels")%>% 
+      addRasterImage(bfast_res(), colors = pal, opacity = 0.8, group='Results') %>%
+      addLegend(pal = pal, values = values(bfast_res()),
+                title = "BFAST results"
+                # ,labels=c("No data","No change","Small negative","Medium negative","Large negative",
+                #                                  "Very large negative","Small positive","Medium positive","Large positive","Very large positive") ## doesnt work-- fix layer labels
+      ) %>% addLayersControl(
+        overlayGroups = c("Results"),
+        options = layersControlOptions(collapsed = FALSE)
+      )  
+    
   })
   
   ##################################################################################################################################

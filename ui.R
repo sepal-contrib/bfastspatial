@@ -1,6 +1,6 @@
 ####################################################################################
-#######          BFAST wrapper                                  ####################
-#######    contributors:  Remi d'Annunzio                       ####################
+#######                      BFAST wrapper                      ####################
+#######    contributors:  Remi d'Annunzio & Yelena Finegold     ####################
 #######              FAO Open Foris SEPAL project               ####################
 #######    remi.dannunzio@fao.org | yelena.finegold@fao.org     ####################
 ####################################################################################
@@ -28,7 +28,6 @@ options(shiny.launch.browser=T)
 source("www/scripts/load_packages.R",echo = TRUE)
 
 
-
 ####################################################################################
 ####### Start User Interface
 
@@ -48,12 +47,13 @@ shinyUI(
     dashboardSidebar(
       width = 350,
       sidebarMenu(
-        menuItem(textOutput('t0_title',inline=T), tabName = "main_tab", icon = icon("dashboard")),
+        menuItem(textOutput('t0_title',inline=T), tabName = "intro_tab", icon = icon("dashboard")),
+        menuItem(textOutput('t1_title',inline=T), tabName = "main_tab", icon = icon("area-chart")),
         hr(),
         br(),
         br(),
-        menuItem(textOutput('source_code',inline=T), icon = icon("file-code-o"),href = "https://github.com/openforis/accuracy-assessment"),
-        menuItem(textOutput('bug_reports',inline=T), icon = icon("bug")        ,href = "https://github.com/openforis/accuracy-assessment/issues")
+        menuItem(textOutput('source_code',inline=T), icon = icon("file-code-o"),href = "https://github.com/openforis/bfastspatial"),
+        menuItem(textOutput('bug_reports',inline=T), icon = icon("bug")        ,href = "https://github.com/openforis/bfastspatial/issues")
       )
     ),
     
@@ -63,7 +63,7 @@ shinyUI(
       tabItems(
         ####################################################################################
         # New Tab
-        tabItem(tabName = "main_tab",
+        tabItem(tabName = "intro_tab",
                 fluidRow(
                   # ####################################################################################
                   # Change style of the CSS style of the tabBox, making the color green
@@ -75,41 +75,80 @@ shinyUI(
                   ####################################################################################
                   # New box
                   box(
-                    title= textOutput('title_language'), width=4,status = "success", solidHeader= TRUE,
-                    selectInput(
-                      'language','',choices = c("English","Français","Español")),
-                    uiOutput("chosen_language")
-                  ),
-                  
+                    title= textOutput('title_description'), width=6,status = "success", solidHeader= TRUE,
+                    tabBox(width=3000,
+                           tabPanel(textOutput('title1_description'),
+                                    tags$h4(textOutput('welcome')),
+                                    
+                                    htmlOutput('welcome_description'),
+                                    selectInput(
+                                      'language','',choices = c("English","Français","Español")),
+                                    uiOutput("chosen_language"),
+                                    htmlOutput('body_description'),
+                                    br(),
+                                    img(src="thumbnails/sepal-logo-EN-white.jpg", height = 100, width = 210),
+                                    img(src="thumbnails/UNREDD_LOGO_COLOUR.jpg",  height = 80,  width = 100),
+                                    img(src="thumbnails/Open-foris-Logo160.jpg",  height = 70,  width = 70),
+                                    br()                                  
+                                    
+                           # end tabPanel
+                           ),
+                          
+                           tabPanel(textOutput('title3_description'),
+                                    htmlOutput('bfast_description'),
+                                    img(src="thumbnails/bfastmonitor_1.png", height = 200, width = 500)
+                                    
+                           # end tabPanel
+                           ),
+                          tabPanel(textOutput('title4_description'),
+                                   htmlOutput('parameter_description')
+                                   # end tabPanel
+                          ),
+                           tabPanel(textOutput('title_download_testdata'),
+                                    actionButton("download_test_button",
+                                                 textOutput('download_testdata_button')),
+                                    uiOutput("dynUI_download_test")
+                           # end tabPanel
+                           ),
+                           tabPanel(textOutput('title_disclaimer'),
+                                    br(),
+                                    htmlOutput('body_disclaimer'),
+                                    br(),
+                                    br(),
+                                    img(src="thumbnails/sepal-logo-EN-white.jpg", height = 100, width = 210),
+                                    img(src="thumbnails/UNREDD_LOGO_COLOUR.jpg",  height = 80,  width = 100),
+                                    img(src="thumbnails/Open-foris-Logo160.jpg",  height = 70,  width = 70),
+                                    br()                                  
+                           # end tabPanel
+                           ),
+                          tabPanel(textOutput('title5_description'),
+                                   htmlOutput('references_text')
+                                   # end tabPanel
+                          )
+                    # end tabBox
+                           )
+
+
                   ####################################################################################
-                  # New box
-                  box(
-                    title= textOutput('title_description'), width=4,status = "success", solidHeader= TRUE,
-                    htmlOutput('body_description')
-                  ),
+                  # End of the Box
                   
-                  ####################################################################################
-                  # New box
-                  box(
-                    title= textOutput('title_download_testdata'), width=4,status = "success", solidHeader= TRUE,
-                    actionButton("download_test_button",
-                                 textOutput('download_testdata_button')),
-                    uiOutput("dynUI_download_test")
-                  )
-                  
-                  
-                ),
+                )
                 ####################################################################################
                 # End of the fluid row
                 
+        )
+        ),
+        ####################################################################################
+        # End of the tabItem 
+        tabItem(tabName = "main_tab",
                 fluidRow(
                   ####################################################################################
                   # New box
                   box(title= textOutput('title_ts_dir'),width=6, status = "success", solidHeader= TRUE,
                       htmlOutput('body_ts_dir'),
                       shinyDirButton(id = 'time_series_dir',
-                                       label = "Time Series Folder",  
-                                       title = "Browse"),
+                                     label = "Time Series Folder",  
+                                     title = "Browse"),
                       br(),
                       textOutput("time_series_dir_path"),
                       br(),
@@ -117,11 +156,15 @@ shinyUI(
                       textOutput("outdirpath"),
                       uiOutput("ui_tiles"),
                       br(),
+                      # checkboxInput("checkbox_useMask",label=textOutput('checkbox_usemask')),
+                      # br(),
+                      uiOutput("ui_option_useMask"),
+                      br(),
+                      
                       shinyFilesButton(id = 'mask_file',
                                        label = "Forest / Non-Forest mask",  
                                        title = "Browse",
                                        multiple=F),
-                      uiOutput("ui_option_useMask"),
                       textOutput("parameterSummary")
                   ),
                   
@@ -137,10 +180,9 @@ shinyUI(
                       uiOutput("ui_option_type"),
                       uiOutput("ui_option_formula"),
                       uiOutput("ui_option_sequential")
-                       
                   )
-                  
                 ),
+                
                 ####################################################################################
                 # End of the fluid row
                 
@@ -150,28 +192,8 @@ shinyUI(
                   box(title=textOutput('title_result'),width=12,status = "success", solidHeader= TRUE,
                       uiOutput("StartButton"),
                       #dataTableOutput("show_table"),
-                      plotOutput("display_res"),
+                      withSpinner(leafletOutput("display_res")),
                       uiOutput("message")
-                  )
-                  ####################################################################################
-                  # End of the Box
-                  
-                ),
-                ####################################################################################
-                # End of the fluid row
-                
-                fluidRow(
-                  ####################################################################################
-                  # New box
-                  box(title=textOutput('title_disclaimer'),width=12,status = "success", solidHeader= TRUE,
-                      br(),
-                      htmlOutput('body_disclaimer'),
-                      br(),
-                      br(),
-                      img(src="thumbnails/sepal-logo-EN-white.jpg", height = 100, width = 210),
-                      img(src="thumbnails/UNREDD_LOGO_COLOUR.jpg",  height = 80,  width = 100),
-                      img(src="thumbnails/Open-foris-Logo160.jpg",  height = 70,  width = 70),
-                      br()
                   )
                   ####################################################################################
                   # End of the Box
@@ -183,7 +205,6 @@ shinyUI(
         )
         ####################################################################################
         # End of the tabItem 
-        
       )
       ####################################################################################
       # End of the tabItem list

@@ -21,6 +21,8 @@ packages(shinyFiles)
 packages(snow)
 packages(htmltools)
 packages(devtools)
+packages(shinycssloaders)
+
 #packages(RCurl)
 
 ## Packages for data table handling
