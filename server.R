@@ -159,8 +159,8 @@ shinyServer(function(input, output, session) {
     max(list_year())
   })
   
-  ##################################################################################################################################
-  ############### Option buttons --> KEEP IF ARCHIVE READING IS NOT OPTIMAL
+  # #################################################################################################################################
+  # ############## Option buttons --> KEEP IF ARCHIVE READING IS NOT OPTIMAL
   # output$ui_option_h_beg <- renderUI({
   #   req(input$time_series_dir)
   #   selectInput(inputId = 'option_h_beg',
@@ -179,20 +179,37 @@ shinyServer(function(input, output, session) {
   #   )
   # })
   
-  
-  ################################# Take the average date for the beginning of monitoring period
+  ################################# Take the average date for the beginning and end of monitoring period
+  output$ui_option_h_beg <- renderUI({
+    # validate(need(beg_year()!=end_year(), "Need data from multiple years"))
+    req(input$time_series_dir)
+    
+    sliderInput(inputId = 'option_h_beg',
+                label = textOutput("text_option_h_date_break"),
+                min = as.numeric(beg_year()),
+                max = as.numeric(end_year()),
+                value = as.numeric(beg_year()),
+                sep = ""
+    )
+  })
+  ################################# Take the average date for the beginning and end of historical period
   output$ui_option_m_beg <- renderUI({
+    validate(need(input$time_series_dir, "Missing input: Please select time series folder"))
+    req(input$option_h_beg)
+    
     # validate(need(beg_year()!=end_year(), "Need data from multiple years"))
     req(input$time_series_dir)
     sliderInput(inputId = 'option_m_beg',
-                label = textOutput("text_option_date_break"),
-                min = as.numeric(beg_year()),
+                label = textOutput("text_option_m_date_break"),
+                min = as.numeric(input$option_h_beg),
                 max = as.numeric(end_year()),
-                value = (as.numeric(beg_year()) + as.numeric(end_year()))/2
-    )
+                value = c((as.numeric(input$option_h_beg) + as.numeric(end_year()))/2,as.numeric(end_year())),
+                sep = ""
+                )
   })
   
   
+
   output$ui_option_order <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = 'option_order',
@@ -244,7 +261,7 @@ shinyServer(function(input, output, session) {
     req(input$time_series_dir)
     # req(input$mask_file)
     selectInput(inputId = "option_useMask",
-                label = "Use a Forest/Non-Forest mask ?",
+                label = "Use a Forest/Non-Forest mask? (Optional)",
                 choices = c("No Mask","FNF Mask"),#,"Sequential"),
                 selected= "No Mask"
     )
@@ -253,7 +270,7 @@ shinyServer(function(input, output, session) {
   output$ui_tiles <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "option_tiles",
-                label = "Which tiles do you want to process ?",
+                label = "Which tiles do you want to process?",
                 choices = basename(list.dirs(data_dir(),recursive = F)),
                 selected= basename(list.dirs(data_dir(),recursive = F)),
                 multiple = TRUE

@@ -175,10 +175,10 @@ shinyUI(
                       uiOutput("ui_option_h_beg"),
                       uiOutput("ui_option_m_end"),
                       uiOutput("ui_option_m_beg"),
-                      uiOutput("ui_option_order"),
                       uiOutput("ui_option_history"),
-                      uiOutput("ui_option_type"),
                       uiOutput("ui_option_formula"),
+                      uiOutput("ui_option_order"),
+                      uiOutput("ui_option_type"),
                       uiOutput("ui_option_sequential")
                   )
                 ),

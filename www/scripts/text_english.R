@@ -19,8 +19,9 @@ output$bug_reports <- reactive({  "Bug reports" })
 output$download_testdata_button <- reactive({"Download test dataset"})
 output$download_csv_button      <- reactive({'Download as tabular data (.csv)'})
 output$start_button             <- reactive({'Launch BFAST calculation'})
-output$text_option_date_break   <- reactive({"Historical / Monitoring break point"})
-output$seq_checkbox             <- reactive({"Compute sequential ?"})
+output$text_option_h_date_break <- reactive({"History beginning year"})
+output$text_option_m_date_break <- reactive({"Monitoring start and end years"})
+output$seq_checkbox             <- reactive({"Compute sequential?"})
 # output$checkbox_usemask         <- reactive({"Use a mask?"})
 
 ############################ SERVER FIELDS
@@ -55,7 +56,6 @@ output$title3_description <- reactive({"Intro to BFAST"})
 output$title4_description <- reactive({"Parameterization"})
 output$title5_description <- reactive({"References"})
 
-
 output$body_description  <- reactive({
   HTML(paste0(
     " <br/>
@@ -83,33 +83,43 @@ changes with information on the parameters of the fitted piecewise linear models
 
 output$parameter_description  <- reactive({
   HTML(paste0(
-    "Parameters 
+    "<h4> Parameters </h4>
 <br/>
-    formula <br/>
-    formula for the regression model. The default is response ~ trend + harmon,
-    i.e., a linear trend and a harmonic season component. Other specifications are
-    possible using all terms set up by bfastpp, i.e., season (seasonal pattern with
-    dummy variables), lag (autoregressive terms), slag (seasonal autoregressiveterms), 
-    or xreg (further covariates). See bfastpp for details.
+    <i><b> Historical / Monitoring break point </b></i><br/>
+The year that marks the end of the historical period and the start of the monitoring period. 
+Monitoring will start in January of the year specified and the historical period will end in December of the previous year. 
+    <br/><br/>
+    <i><b> History </b></i><br/>
+    Specifies the start of the stable history period. The options are:<br/><ul>
+    <li>reverse-ordered CUSUM (<i>ROC</i>), looks backward in time, using a stepwise approach, 
+to identify a stable history period </li>
+    <li>Bai and Perron breakpoint estimation (<i>BP</i>), also identifies a stable history period 
+and can additionally be used to identify disturbances in the history period. </li>
+    <li><i>all</i>, uses all available observations. </li>
+    <li>numeric, i.e., <i>2011</i> , the start date can be specified using the year. </li></ul>
+<br/>
+    <i><b> Formula </b></i> <br/>
+    The formula describes the type of regression model applied. The options are: <br/><ul>
+    <li><i>trend + harmon</i>, a linear trend and a harmonic season component </li>
+    <li><i>harmon</i>, a harmonic season component </li> 
+    <li><i>trend</i>, a linear trend </li></ul>
+<br/>
+    <i><b> Order  </b></i> <br/>
+    Specifies the order of the harmonic term, defaulting to 3.
 <br/><br/>
-    order <br/>
- numeric. Order of the harmonic term, defaulting to 3.
-<br/><br/>
-    lag <br/>
-numeric. Order of the autoregressive term, by default omitted.
-<br/><br/>
-    history <br/>
-specification of the start of the stable history period. Can either be a character,
-    numeric, or a function. If character, then selection is possible between
-    reverse-ordered CUSUM (ROC, default), Bai and Perron breakpoint estimation
-    (BP), or all available observations (all). If numeric, the start date can
-    be specified in the same form as start. If a function is supplied it is called as
-    history(formula, data) to compute a numeric start date.
-<br/><br/>
-    type <br/>character specifying the type of monitoring process. By default, a MOSUM
-    process based on OLS residuals is employed. See mefp for alternatives.",
-    a(href="http://bfast.r-forge.r-project.org/",
-      "(BFAST R package documentation) ",target="_blank")
+    <i><b>Type </b></i><br/>
+    Specifies the type of monitoring process.  The options are: <br/><ul>
+    <li>moving sums of residuals (<i>MOSUM</i>), where residuals are calculated as the difference between 
+    expected values and actual observations in a monitoring period based on OLS residuals. </li>
+    <li>cumulative sum (<i>CUSUM</i>), cumulative sums of standardized residuals (MOSUM uses a moving sum, 
+    while CUSUM uses a cumulative of the same residuals) </li>
+    <li>moving estimates (<i>ME</i>), the moving estimates process is returned </li>
+    <li><i>fluctuation</i>, returns the recursive estimates process </li>
+for additional documentation on the type parameter see the strucchange package documentation
+",
+    a(href="https://www.jstatsoft.org/article/view/v007i02",
+      "(strucchange package documentation.)",target="_blank"),
+    '</li></ul>'
   ))})
 output$title_download_testdata <- reactive({"Download test data"})
 
@@ -118,6 +128,8 @@ output$references_text  <- reactive({
     "TBA"
   ))})
 ############################ INTRODUCTION TAB - BOX 2
+output$title_opt_dir <-  reactive({"Parameters"})
+
 output$title_ts_dir <- reactive({"Time series input"})
 
 output$body_ts_dir  <- reactive({
