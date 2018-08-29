@@ -21,7 +21,7 @@ packages(shinyFiles)
 packages(snow)
 packages(htmltools)
 packages(devtools)
-packages(shinycssloaders)
+# packages(shinycssloaders)
 
 #packages(RCurl)
 

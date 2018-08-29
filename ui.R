@@ -194,7 +194,10 @@ shinyUI(
                       verbatimTextOutput("print_PROGRESS"),
                       uiOutput("DisplayButton"),
                       
-                      withSpinner(leafletOutput("display_res")),
+                      # withSpinner(
+                        leafletOutput("display_res")
+                      # )
+                  ,
                       uiOutput("message")
                   )
                   ####################################################################################

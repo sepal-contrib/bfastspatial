@@ -23,7 +23,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   # print(paste0('Running BFAST from: ', the_dir))
   output_directory <- paste0(the_dir,"results/")
  
-  print(paste0('The results will be found in the ' ,paste0(output_directory)))
+  print(paste0('The results will be found in the folder: ' ,paste0(output_directory)))
   
   dir.create(output_directory, recursive = T,showWarnings = F)
   
