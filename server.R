@@ -415,7 +415,6 @@ shinyServer(function(input, output, session) {
     # )
     data_dir <- data_dir()
     
-    print('hereeeeee')
     load(paste0(data_dir(),"/my_work_space.RData"))
     
     print(title)
@@ -423,7 +422,6 @@ shinyServer(function(input, output, session) {
     # req(file.exists(paste0(data_dir(),"/1/results/bfast_",title,"/bfast_",title,"_threshold.tif")))
     #############################################################
     ### MERGE AS VRT
-    print('hellooooooooo')
     print(title)
     system(sprintf("gdalbuildvrt %s %s",
                    paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
@@ -449,7 +447,6 @@ shinyServer(function(input, output, session) {
     print('Check: Display the map')
     # req(bfast_res())
     req(vrtout())
-    print('is the error here???')
     print(vrtout())
     pal <- colorNumeric(c(  "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"), values(vrtout()),
                         na.color = "transparent")

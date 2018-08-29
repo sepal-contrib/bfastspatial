@@ -212,7 +212,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   
   print('Done processing!!! Click on DISPLAY THE RESULTS')
   sink()
-}##End of DATA AVAILABLE loop
+} ### End of DATA AVAILABLE loop
 
 
 
