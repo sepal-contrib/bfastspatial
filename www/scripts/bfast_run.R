@@ -88,8 +88,8 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   if(!file.exists(result)){
     if(mode == "Overall"){
       print('Running BFAST this takes some time... if you are busy you can close the window and view the results later, or wait to see the results displayed when the algorthim finishes processing')
-      print('If you close this window make sure the process runs by changing the Minimum time frame to at least 1 hour')
-      print('If you have some time, sit back, relax and wait for the results to finish processing.')
+      print('If you close this window make sure the process runs by changing the Minimum time frame in the SEPAL user resources to at least 1 hour')
+      print('If you have some time sit back, relax and wait for the results to finish processing.')
       time <- system.time(bfmSpatial(the_stack, 
                                      start    = c(monitoring_year_beg[1], 1),
                                      dates    = dates,
