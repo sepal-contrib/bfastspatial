@@ -55,7 +55,7 @@ shinyServer(function(input, output, session) {
   
   ##################################################################################################################################
   ############### Show progress bar while loading everything
-  
+  options(echo=TRUE)
   progress <- shiny::Progress$new()
   progress$set(message = "Loading data", value = 0)
   
@@ -179,7 +179,7 @@ shinyServer(function(input, output, session) {
   #   )
   # })
   
-  ################################# Take the average date for the beginning and end of monitoring period
+  ################################# Take the average date for the beginning and end of historical period
   output$ui_option_h_beg <- renderUI({
     # validate(need(beg_year()!=end_year(), "Need data from multiple years"))
     req(input$time_series_dir)
@@ -192,7 +192,7 @@ shinyServer(function(input, output, session) {
                 sep = ""
     )
   })
-  ################################# Take the average date for the beginning and end of historical period
+  ################################# Take the average date for the beginning and end of monitoring period
   output$ui_option_m_beg <- renderUI({
     validate(need(input$time_series_dir, "Missing input: Please select time series folder"))
     req(input$option_h_beg)
@@ -287,9 +287,8 @@ shinyServer(function(input, output, session) {
     print(data_dir)
     
     historical_year_beg <- as.numeric(beg_year())
-    monitoring_year_end <- as.numeric(end_year())
-    
     monitoring_year_beg <- as.numeric(input$option_m_beg)
+    monitoring_year_end <- as.numeric(end_year())
     
     order               <- as.numeric(input$option_order)
     history             <- as.character(input$option_history)
@@ -302,7 +301,7 @@ shinyServer(function(input, output, session) {
     mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
     formula             <- paste0("response ~ ",paste(formula_elements,sep = " " ,collapse = "+"))
     
-    title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt)
+    title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
     
   })
   
@@ -314,8 +313,16 @@ shinyServer(function(input, output, session) {
     validate(need(input$option_formula, "Missing input: Please select at least one element in the formula"))
     actionButton('bfastStartButton', textOutput('start_button'))
   })
-  
-  
+  ##################################################################################################################################
+  ############### Insert the display button
+  output$DisplayButton <- renderUI({
+    req(input$time_series_dir)
+    req(input$bfastStartButton)
+    
+    validate(need(input$option_tiles, "Missing input: Please select at least one tile to process"))
+    validate(need(input$option_formula, "Missing input: Please select at least one element in the formula"))
+    actionButton('bfastDisplayButton', textOutput('display_button'))
+  })
   ##################################################################################################################################
   ############### Run BFAST
   bfast_res <- eventReactive(input$bfastStartButton,
@@ -326,10 +333,9 @@ shinyServer(function(input, output, session) {
                                data_dir            <- paste0(data_dir(),"/")
                                print(data_dir)
                                
-                               historical_year_beg <- as.numeric(beg_year())
-                               monitoring_year_end <- as.numeric(end_year())
-                               
-                               monitoring_year_beg <- as.numeric(input$option_m_beg)
+                               historical_year_beg <- as.numeric(input$option_h_beg)
+                               monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
+                               monitoring_year_end <- as.numeric(input$option_m_beg)[2]
                                
                                order               <- as.numeric(input$option_order)
                                history             <- as.character(input$option_history)
@@ -346,38 +352,92 @@ shinyServer(function(input, output, session) {
                                print(history)
                                print(formula)
                                print(type)
+                               mask_file_path <- input$mask_file_path
+                               title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
                                
-                               title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt)
                                
-                               print(title)
                                
                                tiles <- input$option_tiles
+                               save(data_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,
+                                    file = paste0(data_dir,"/my_work_space.RData"))
                                
                                for(the_dir in tiles){#list.dirs(data_dir, recursive=FALSE)){
-                                 
-                                 withProgress(message = paste0('BFAST running for ',the_dir),
-                                              value = 0,
-                                              {
-                                                setProgress(value = .1)
-                                                source("www/scripts/bfast_run.R",echo=T,local=T)
-                                              })
+                               saveRDS(the_dir,file = paste0(data_dir,"/the_dir.rds"))  
+                                 # withProgress(message = paste0('BFAST running for ',the_dir),
+                                 #              value = 0,
+                                 #              {
+                                 #                setProgress(value = .1)
+                                 #                
+                                 #                source('www/scripts/bfast_run.R')
+                                 #              })
+                                 system(paste0("nohup Rscript www/scripts/bfast_run.R ",data_dir, ' & '
+                                 ))
                                }
-                               
-                               #############################################################
-                               ### MERGE AS VRT
-                               system(sprintf("gdalbuildvrt %s %s",
-                                              paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
-                                              paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")
-                               ))
-                               print(paste0(data_dir,"/bfast_",title,"_threshold.vrt"))
-                               raster(paste0(data_dir,"/bfast_",title,"_threshold.vrt"))
+                               print('done?')
                                
                              })
   
+  #############################################################
+  # Progress monitor function
+  output$print_PROGRESS = renderText({
+    invalidateLater(5000)
+    req(bfast_res())
+      progress_file <- file.path(data_dir(), "processing.txt")
+      if(file.exists(progress_file)){
+        NLI <- as.integer(system2("wc", args = c("-l", progress_file," | awk '{print $1}'"), stdout = TRUE))
+        NLI <- NLI + 1 
+        invalidateLater(1000)
+        paste(readLines(progress_file, n = NLI, warn = FALSE), collapse = "\n")
+      }
+      else{
+        print("No process seems to be running")
+      }
+     
+  })
+# outputcreated <- reactive({
+# validate(
+#   need(file.exists(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")),'Calculation In Progress'),
+#   need(file.info(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif"))$mtime > Sys.time()-5,'Calculation In Progress')
+# )
+# x <- readRDS('LargeComputationOutput')
+# })
+
+  
+  vrtout <- eventReactive(input$bfastDisplayButton,
+                          {
+                            req(input$bfastDisplayButton)
+                            
+    
+    # validate(
+    #   need(
+        # req(file.exists(paste0(data_dir(), list.files(data_dir(), pattern="\\_threshold.tif$", recursive = T))),'Calculation In Progress')
+    #     )
+    # )
+    data_dir <- data_dir()
+    
+    print('hereeeeee')
+    load(paste0(data_dir(),"/my_work_space.RData"))
+    
+    print(title)
+    req(bfast_res())
+    # req(file.exists(paste0(data_dir(),"/1/results/bfast_",title,"/bfast_",title,"_threshold.tif")))
+    #############################################################
+    ### MERGE AS VRT
+    print('hellooooooooo')
+    print(title)
+    system(sprintf("gdalbuildvrt %s %s",
+                   paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
+                   paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")
+    ))
+    print(paste0(data_dir,"/bfast_",title,"_threshold.vrt"))
+    raster(paste0(data_dir,"/bfast_",title,"_threshold.vrt"))
+  })
   ##################################################################################################################################
   ############### Processing time as reactive
   process_time <- reactive({
-    req(bfast_res())
+    # req(bfast_res())
+    req(vrtout())
+    
     log_filename <- list.files(data_dir(),pattern="log",recursive = T)[1]
     print(paste0(data_dir(),"/",log_filename))
     readLines(paste0(data_dir(),"/",log_filename))
@@ -387,14 +447,17 @@ shinyServer(function(input, output, session) {
   ## render the map
   output$display_res  <-  renderLeaflet({
     print('Check: Display the map')
-    req(bfast_res())
-    pal <- colorNumeric(c(  "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"), values(bfast_res()),
+    # req(bfast_res())
+    req(vrtout())
+    print('is the error here???')
+    print(vrtout())
+    pal <- colorNumeric(c(  "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"), values(vrtout()),
                         na.color = "transparent")
     m <- leaflet() %>% addTiles() %>%
       addProviderTiles('Esri.WorldImagery') %>% 
       addProviderTiles("CartoDB.PositronOnlyLabels")%>% 
-      addRasterImage(bfast_res(), colors = pal, opacity = 0.8, group='Results') %>%
-      addLegend(pal = pal, values = values(bfast_res()),
+      addRasterImage(vrtout(), colors = pal, opacity = 0.8, group='Results') %>%
+      addLegend(pal = pal, values = values(vrtout()),
                 title = "BFAST results"
                 # ,labels=c("No data","No change","Small negative","Medium negative","Large negative",
                 #                                  "Very large negative","Small positive","Medium positive","Large positive","Very large positive") ## doesnt work-- fix layer labels
@@ -409,6 +472,7 @@ shinyServer(function(input, output, session) {
   ############### Display parameters
   output$parameterSummary <- renderText({
     req(input$time_series_dir)
+    print('or here?')
     print(paste0("Parameters are : ",parameters()))
   })
   
@@ -416,6 +480,8 @@ shinyServer(function(input, output, session) {
   ############### Display time
   output$message <- renderText({
     req(bfast_res())
+    req(vrtout())
+    
     print("processing time")
     process_time()
   })

@@ -164,8 +164,7 @@ shinyUI(
                       shinyFilesButton(id = 'mask_file',
                                        label = "Forest / Non-Forest mask",  
                                        title = "Browse",
-                                       multiple=F),
-                      textOutput("parameterSummary")
+                                       multiple=F)
                   ),
                   
                   ####################################################################################
@@ -192,6 +191,9 @@ shinyUI(
                   box(title=textOutput('title_result'),width=12,status = "success", solidHeader= TRUE,
                       uiOutput("StartButton"),
                       #dataTableOutput("show_table"),
+                      verbatimTextOutput("print_PROGRESS"),
+                      uiOutput("DisplayButton"),
+                      
                       withSpinner(leafletOutput("display_res")),
                       uiOutput("message")
                   )

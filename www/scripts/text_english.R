@@ -19,6 +19,8 @@ output$bug_reports <- reactive({  "Bug reports" })
 output$download_testdata_button <- reactive({"Download test dataset"})
 output$download_csv_button      <- reactive({'Download as tabular data (.csv)'})
 output$start_button             <- reactive({'Launch BFAST calculation'})
+output$display_button           <- reactive({'Display BFAST results'})
+
 output$text_option_h_date_break <- reactive({"History beginning year"})
 output$text_option_m_date_break <- reactive({"Monitoring start and end years"})
 output$seq_checkbox             <- reactive({"Compute sequential?"})

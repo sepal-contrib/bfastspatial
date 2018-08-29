@@ -1,15 +1,29 @@
 ## modified from https://github.com/rosca002/FAO_Bfast_workshop/tree/master/tutorial
 
+# #################################################################################################################################
+############### # load packages
+source("www/scripts/load_BFAST_packages.R",echo = TRUE)
+############### # read the data directory from the system argument
+options(echo=TRUE)
+args <- commandArgs(TRUE)
+print(args[1])
+data_dir <- args[1]
 
+############### # check if the processing text exists, create a new blank processing text file
+load(paste0(data_dir,"/my_work_space.RData"))
+the_dir <- readRDS(paste0(data_dir,"/the_dir.rds"))
+
+############### write the consule outputs 
+sink(paste0(data_dir,"processing.txt"))
 
 the_dir <- paste0(data_dir,basename(the_dir),"/")
-print(the_dir)
-
+print('BFAST is processing, make sure you are running an instance with large CPU capacity, such as a c4.4xlarge (12) or c4.8xlarge (13)')
+############### check if the time series input data exists
 if(file.exists(paste0(the_dir,'/','stack.vrt'))){
-  
-  print(paste0('Running BFAST from: ', the_dir))
-  
-  output_directory <- paste0(the_dir,"/results/")
+  # print(paste0('Running BFAST from: ', the_dir))
+  output_directory <- paste0(the_dir,"results/")
+ 
+  print(paste0('The results will be found in the ' ,paste0(output_directory)))
   
   dir.create(output_directory, recursive = T,showWarnings = F)
   
@@ -17,10 +31,10 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   
   data_input_vrt <- paste0(the_dir,'/','stack.vrt')
   the_stack      <- brick(data_input_vrt) 
-  
   tryCatch({
-    if(input$option_useMask == "FNF Mask" ){
-    mask_file_path     <- mask_file_path()
+    if(mask == "FNF Mask" ){
+      print('Using the Forest/Nonforest mask')
+    mask_file_path     <- mask_file_path
     data_input_msk     <- paste0(the_dir,'/','mask_FNF.tif')
     data_input_vrt_nd  <- paste0(the_dir,'/','stack_ND.tif')
     data_input_tif_msk <- paste0(the_dir,'/','stack_FNF.tif')
@@ -29,7 +43,6 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
     input  <- mask_file_path
     ouput  <- data_input_msk
     mask   <- data_input_vrt
-    
     system(sprintf("gdalwarp -ot UInt16 -co COMPRESS=LZW -t_srs \"%s\" -te %s %s %s %s -tr %s %s %s %s -overwrite",
                    proj4string(raster(mask)),
                    extent(raster(mask))@xmin,
@@ -61,7 +74,6 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   }, error=function(e){})
   
   
-  
   results_directory <- file.path(output_directory,paste0("bfast_",title,'/'))
   
   dir.create(results_directory,recursive = T,showWarnings = F)
@@ -71,13 +83,15 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   
   result       <- file.path(results_directory, paste0("bfast_",title, ".tif"))
   
-  print(result)
   outputfile   <- paste0(results_directory,"bfast_",title,'_threshold.tif')
   
   if(!file.exists(result)){
     if(mode == "Overall"){
+      cat('Running BFAST this takes some time... if you are busy you can close the window and view the results later, or wait to see the results displayed when the algorthim finishes processing')
+      cat('If you close this window make sure the process runs by changing the Minimum time frame to at least 1 hour')
+      cat('If you have some time, sit back, relax and wait for the results to finish processing.')
       time <- system.time(bfmSpatial(the_stack, 
-                                     start    = c(monitoring_year_beg, 1),
+                                     start    = c(monitoring_year_beg[1], 1),
                                      dates    = dates,
                                      formula  = as.Formula(formula),
                                      order    = order, 
@@ -89,7 +103,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
       
       write(paste0("This process started on ", start_time," and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")," for a total time of ", time[[3]]/60," minutes"), log_filename, append=TRUE)
       
-      
+
       ## Post-processing ####
       # calculate the mean, standard deviation, minimum and maximum of the magnitude band
       # reclass the image into 10 classes
@@ -105,12 +119,10 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
       # 9 = postive very large magnitude change  (mean + 4+ standard deviations)
       
       tryCatch({
-        
         means_b2   <- cellStats( raster(result,band=2) , "mean") 
         mins_b2    <- cellStats( raster(result,band=2) , "min")
         maxs_b2    <- cellStats( raster(result,band=2) , "max")
         stdevs_b2  <- cellStats( raster(result,band=2) , "sd")
-        
         system(sprintf("gdal_calc.py -A %s --A_band=2 --co=COMPRESS=LZW --type=Byte --overwrite --outfile=%s --calc=\"%s\"",
                        result,
                        paste0(results_directory,"tmp_bfast_",title,'_threshold.tif'),
@@ -143,7 +155,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
                               cols[2,],
                               cols[3,]
       ))
-      
+
       write.table(pct,paste0(results_directory,"color_table.txt"),row.names = F,col.names = F,quote = F)
       
       
@@ -161,7 +173,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
       ))
       ## Clean all
       system(sprintf(paste0("rm ",results_directory,"tmp*.tif")))
-      
+
     }else{##End of OVERALL loop and Beginning of SEQUENTIAL loop
       
       bfmSpatialSq <- function(start, end, timeStack, ...){
@@ -196,9 +208,11 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
     }##End of SEQUENTIAL loop
     
   }##End of RESULTS EXIST loop
+  print(paste0('The result is ',basename(result)))
   
+  print('Done processing!!! Click on DISPLAY THE RESULTS')
+  sink()
 }##End of DATA AVAILABLE loop
-
 
 
 
