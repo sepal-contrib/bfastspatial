@@ -8,15 +8,16 @@ options(echo=TRUE)
 args <- commandArgs(TRUE)
 print(args[1])
 data_dir <- args[1]
+the_dir <- args[2]
 
 ############### # check if the processing text exists, create a new blank processing text file
 load(paste0(data_dir,"/my_work_space.RData"))
-the_dir <- readRDS(paste0(data_dir,"/the_dir.rds"))
-
+# the_dir <- readRDS(paste0(data_dir,"/the_dir.rds"))
+the_dir <- paste0(data_dir, the_dir, '/')
 ############### write the consule outputs 
 sink(paste0(data_dir,"processing.txt"))
-
-the_dir <- paste0(data_dir,basename(the_dir),"/")
+print(paste0('Running time series analysis for: ',basename(the_dir)))
+# the_dir <- paste0(data_dir,basename(the_dir),"/")
 print('BFAST is processing, make sure you are running an instance with large CPU capacity, such as a c4.4xlarge (12) or c4.8xlarge (13)')
 ############### check if the time series input data exists
 if(file.exists(paste0(the_dir,'/','stack.vrt'))){

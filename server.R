@@ -362,7 +362,8 @@ shinyServer(function(input, output, session) {
                                     file = paste0(data_dir,"/my_work_space.RData"))
                                
                                for(the_dir in tiles){#list.dirs(data_dir, recursive=FALSE)){
-                               saveRDS(the_dir,file = paste0(data_dir,"/the_dir.rds"))  
+                                print(paste0('BFAST running for ',the_dir))
+                               # saveRDS(the_dir,file = paste0(data_dir,"/the_dir.rds"))  
                                  # withProgress(message = paste0('BFAST running for ',the_dir),
                                  #              value = 0,
                                  #              {
@@ -370,7 +371,7 @@ shinyServer(function(input, output, session) {
                                  #                
                                  #                source('www/scripts/bfast_run.R')
                                  #              })
-                                 system(paste0("nohup Rscript www/scripts/bfast_run.R ",data_dir, ' & '
+                                 system(paste0("nohup Rscript www/scripts/bfast_run.R ",data_dir,' ', the_dir,' & '
                                  ))
                                }
                                print('done?')
