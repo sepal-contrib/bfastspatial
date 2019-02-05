@@ -19,7 +19,8 @@ output$bug_reports <- reactive({  "Bug reports" })
 output$download_testdata_button <- reactive({"Download test dataset"})
 output$download_csv_button      <- reactive({'Download as tabular data (.csv)'})
 output$start_button             <- reactive({'Launch BFAST calculation'})
-output$display_button           <- reactive({'Display BFAST results'})
+output$display_button_a           <- reactive({'Display selected results'})
+output$display_button_c           <- reactive({'Display BFAST results from this session'})
 
 output$text_option_h_date_break <- reactive({"History beginning year"})
 output$text_option_m_date_break <- reactive({"Monitoring start and end years"})
@@ -142,7 +143,7 @@ output$body_ts_dir  <- reactive({
 
 output$body_output_dir  <- reactive({
   HTML(paste0(
-    "The DATA directory contains the following tiles:"
+    "The DATA directory contains the following folders: "
   )
   )})
 

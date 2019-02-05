@@ -162,7 +162,7 @@ shinyUI(
                       br(),
                       
                       shinyFilesButton(id = 'mask_file',
-                                       label = "Forest / Non-Forest mask",  
+                                       label = "Mask file",  
                                        title = "Browse",
                                        multiple=F)
                   ),
@@ -178,6 +178,7 @@ shinyUI(
                       uiOutput("ui_option_formula"),
                       uiOutput("ui_option_order"),
                       uiOutput("ui_option_type"),
+                      uiOutput("ui_option_returnLayers"),
                       uiOutput("ui_option_sequential")
                   )
                 ),
@@ -192,7 +193,10 @@ shinyUI(
                       uiOutput("StartButton"),
                       #dataTableOutput("show_table"),
                       verbatimTextOutput("print_PROGRESS"),
-                      uiOutput("DisplayButton"),
+                      uiOutput("list_thres"),
+                      
+                      uiOutput("DisplayButtonCurrent"),
+                      uiOutput("DisplayButtonAvailable"),
                       
                       # withSpinner(
                         leafletOutput("display_res")

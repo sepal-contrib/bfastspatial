@@ -3,6 +3,7 @@
 # #################################################################################################################################
 ############### # load packages
 source("www/scripts/load_BFAST_packages.R",echo = TRUE)
+library(shiny)
 ############### # read the data directory from the system argument
 options(echo=TRUE)
 args <- commandArgs(TRUE)
@@ -18,9 +19,16 @@ the_dir <- paste0(data_dir, the_dir, '/')
 sink(paste0(data_dir,"processing.txt"))
 print(paste0('Running time series analysis for: ',basename(the_dir)))
 # the_dir <- paste0(data_dir,basename(the_dir),"/")
-print('BFAST is processing, make sure you are running an instance with large CPU capacity, such as a c4.4xlarge (12) or c4.8xlarge (13)')
+# Start the clock!
+# ptm <- proc.time()
+# 
+# print(paste0('The process has been running for: ', ptm))
+
+# print('BFAST is processing, make sure you are running an instance with large CPU capacity, such as a c4.4xlarge (12) or c4.8xlarge (13)')
 ############### check if the time series input data exists
 if(file.exists(paste0(the_dir,'/','stack.vrt'))){
+  
+
   # print(paste0('Running BFAST from: ', the_dir))
   output_directory <- paste0(the_dir,"results/")
  
@@ -92,14 +100,16 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
       print('If you close this window make sure the process runs by changing the Minimum time frame in the SEPAL user resources to at least 1 hour')
       print('If you have some time sit back, relax and wait for the results to finish processing.')
       time <- system.time(bfmSpatial(the_stack, 
-                                     start    = c(monitoring_year_beg[1], 1),
-                                     dates    = dates,
-                                     formula  = as.Formula(formula),
-                                     order    = order, 
-                                     history  = history,
-                                     filename = result,
-                                     type     = type,
-                                     mc.cores = detectCores()))
+                                     start        = c(monitoring_year_beg[1], 1),
+                                     monend       = c(monitoring_year_end[1], 1),
+                                     dates        = dates,
+                                     formula      = as.Formula(formula),
+                                     order        = order, 
+                                     history      = history,
+                                     filename     = result,
+                                     type         = type,
+                                     returnLayers = returnLayers,
+                                     mc.cores     = detectCores()))
       
       
       write(paste0("This process started on ", start_time," and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")," for a total time of ", time[[3]]/60," minutes"), log_filename, append=TRUE)
@@ -159,7 +169,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
 
       write.table(pct,paste0(results_directory,"color_table.txt"),row.names = F,col.names = F,quote = F)
       
-      
+
       ################################################################################
       ## Add pseudo color table to result
       system(sprintf("(echo %s) | oft-addpct.py %s %s",
@@ -173,6 +183,14 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
                      outputfile
       ))
       ## Clean all
+      ####################  CREATE A VRT OUTPUT
+      
+      system(sprintf("gdalbuildvrt %s %s",
+                     paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
+                     paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")
+      ))
+      print(paste0(data_dir,"/bfast_",title,"_threshold.vrt"))
+      
       system(sprintf(paste0("rm ",results_directory,"tmp*.tif")))
 
     }else{##End of OVERALL loop and Beginning of SEQUENTIAL loop
@@ -210,8 +228,11 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
     
   }##End of RESULTS EXIST loop
   print(paste0('The result is ',basename(result)))
-  
+
   print('Done processing!!! Click on DISPLAY THE RESULTS')
+  # Stop the clock
+  # proc.time() - ptm
+  # print(time1())
   sink()
 } ### End of DATA AVAILABLE loop
 

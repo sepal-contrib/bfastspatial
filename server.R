@@ -247,12 +247,21 @@ shinyServer(function(input, output, session) {
                 selected = "harmon"
     )
   })
+  output$ui_option_returnLayers <- renderUI({
+    req(input$time_series_dir)
+    selectInput(inputId = 'option_returnLayers',
+                label = "Raster band outputs",
+                choices = c("breakpoint", "magnitude", "error", "history", "r.squared", "adj.r.squared", "coefficients"),
+                multiple = TRUE,
+                selected = c("breakpoint", "magnitude", "error")
+    )
+  })
   
   output$ui_option_sequential <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "option_sequential",
                 label = "Computation mode",
-                choices = c("Overall"),#,"Sequential"),
+                choices = c("Overall","Sequential"),
                 selected= "Overall"
     )
   })
@@ -270,7 +279,7 @@ shinyServer(function(input, output, session) {
   output$ui_tiles <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "option_tiles",
-                label = "Which tiles do you want to process?",
+                label = "Which folders do you want to process?",
                 choices = basename(list.dirs(data_dir(),recursive = F)),
                 selected= basename(list.dirs(data_dir(),recursive = F)),
                 multiple = TRUE
@@ -289,6 +298,7 @@ shinyServer(function(input, output, session) {
     historical_year_beg <- as.numeric(beg_year())
     monitoring_year_beg <- as.numeric(input$option_m_beg)
     monitoring_year_end <- as.numeric(end_year())
+    monitoring_year_end <- as.numeric(input$option_m_beg)
     
     order               <- as.numeric(input$option_order)
     history             <- as.character(input$option_history)
@@ -296,6 +306,7 @@ shinyServer(function(input, output, session) {
     type                <- as.character(input$option_type)
     mask                <- as.character(input$option_useMask)
     formula_elements    <- unlist(input$option_formula)
+    returnLayers        <- as.character(input$option_returnLayers)
     
     type_num            <- c("OC","OM","R","M","f")[which(c("OLS-CUSUM", "OLS-MOSUM", "RE", "ME","fluctuation")==type)]
     mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
@@ -309,20 +320,34 @@ shinyServer(function(input, output, session) {
   ############### Insert the start button
   output$StartButton <- renderUI({
     req(input$time_series_dir)
-    validate(need(input$option_tiles, "Missing input: Please select at least one tile to process"))
+    validate(need(input$option_tiles, "Missing input: Please select at least one folder to process"))
     validate(need(input$option_formula, "Missing input: Please select at least one element in the formula"))
+    validate(need(input$option_returnLayers, "Missing input: Please select at least one layer to export"))
+    
     actionButton('bfastStartButton', textOutput('start_button'))
   })
   ##################################################################################################################################
   ############### Insert the display button
-  output$DisplayButton <- renderUI({
+  output$DisplayButtonCurrent <- renderUI({
     req(input$time_series_dir)
     req(input$bfastStartButton)
     
-    validate(need(input$option_tiles, "Missing input: Please select at least one tile to process"))
+    validate(need(input$option_tiles, "Missing input: Please select at least one folder to process"))
     validate(need(input$option_formula, "Missing input: Please select at least one element in the formula"))
-    actionButton('bfastDisplayButton', textOutput('display_button'))
+    validate(need(input$option_returnLayers, "Missing input: Please select at least one layer to export"))
+    
+    actionButton('bfastDisplayButton_c', textOutput('display_button_c'))
   })
+  ##################################################################################################################################
+  ############### Insert the display button
+  output$DisplayButtonAvailable <- renderUI({
+    req(input$time_series_dir)
+    # req(input$bfastStartButton)
+    
+    actionButton('bfastDisplayButton_a', textOutput('display_button_a'))
+  })
+  
+
   ##################################################################################################################################
   ############### Run BFAST
   bfast_res <- eventReactive(input$bfastStartButton,
@@ -343,6 +368,7 @@ shinyServer(function(input, output, session) {
                                type                <- as.character(input$option_type)
                                mask                <- as.character(input$option_useMask)
                                formula_elements    <- unlist(input$option_formula)
+                               returnLayers        <- c(as.character(input$option_returnLayers))
                                
                                type_num            <- c("OC","OM","R","M","f")[which(c("OLS-CUSUM", "OLS-MOSUM", "RE", "ME","fluctuation")==type)]
                                mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
@@ -352,27 +378,28 @@ shinyServer(function(input, output, session) {
                                print(history)
                                print(formula)
                                print(type)
+                               print(returnLayers)
                                mask_file_path <- input$mask_file_path
-                               title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
+                               title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,'_',mode,'_',historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
                                
                                
                                
                                tiles <- input$option_tiles
-                               save(data_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,
+                               save(data_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
                                     file = paste0(data_dir,"/my_work_space.RData"))
                                
                                for(the_dir in tiles){#list.dirs(data_dir, recursive=FALSE)){
                                 print(paste0('BFAST running for ',the_dir))
                                # saveRDS(the_dir,file = paste0(data_dir,"/the_dir.rds"))  
-                                 # withProgress(message = paste0('BFAST running for ',the_dir),
-                                 #              value = 0,
-                                 #              {
-                                 #                setProgress(value = .1)
-                                 #                
-                                 #                source('www/scripts/bfast_run.R')
-                                 #              })
-                                 system(paste0("nohup Rscript www/scripts/bfast_run.R ",data_dir,' ', the_dir,' & '
-                                 ))
+                                 withProgress(message = paste0('BFAST running for ',the_dir),
+                                              value = 0,
+                                              {
+                                                setProgress(value = .1)
+                                                system(paste0("nohup Rscript www/scripts/bfast_run.R ",data_dir,' ', the_dir,' & '
+                                                ))
+                                                # source('www/scripts/bfast_run.R')
+                                              })
+                              
                                }
                                print('done?')
                                
@@ -381,8 +408,9 @@ shinyServer(function(input, output, session) {
   #############################################################
   # Progress monitor function
   output$print_PROGRESS = renderText({
-    invalidateLater(5000)
+    invalidateLater(1000)
     req(bfast_res())
+    
       progress_file <- file.path(data_dir(), "processing.txt")
       if(file.exists(progress_file)){
         NLI <- as.integer(system2("wc", args = c("-l", progress_file," | awk '{print $1}'"), stdout = TRUE))
@@ -391,10 +419,24 @@ shinyServer(function(input, output, session) {
         paste(readLines(progress_file, n = NLI, warn = FALSE), collapse = "\n")
       }
       else{
+        invalidateLater(2001)
         print("No process seems to be running")
       }
      
   })
+
+# does the data exist? 
+# 
+# IsThereNewFile=function(){  #  cheap function whose values over time will be tested for equality;
+#     #  inequality indicates that the underlying value has changed and needs to be 
+#     #  invalidated and re-read using valueFunc
+#     
+#     filenames <- list.files(pattern="*.tif", full.names=TRUE)
+#     length(filenames)
+#   }
+  
+  
+    
 # outputcreated <- reactive({
 # validate(
 #   need(file.exists(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")),'Calculation In Progress'),
@@ -404,61 +446,106 @@ shinyServer(function(input, output, session) {
 # })
 
   
-  vrtout <- eventReactive(input$bfastDisplayButton,
-                          {
-                            req(input$bfastDisplayButton)
-                            
-    
-    # validate(
-    #   need(
-        # req(file.exists(paste0(data_dir(), list.files(data_dir(), pattern="\\_threshold.tif$", recursive = T))),'Calculation In Progress')
-    #     )
-    # )
-    data_dir <- data_dir()
-    
-    load(paste0(data_dir(),"/my_work_space.RData"))
-    
-    print(title)
-    req(bfast_res())
-    # req(file.exists(paste0(data_dir(),"/1/results/bfast_",title,"/bfast_",title,"_threshold.tif")))
-    #############################################################
-    ### MERGE AS VRT
-    print(title)
-    system(sprintf("gdalbuildvrt %s %s",
-                   paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
-                   paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")
-    ))
-    print(paste0(data_dir,"/bfast_",title,"_threshold.vrt"))
-    raster(paste0(data_dir,"/bfast_",title,"_threshold.vrt"))
-  })
+  # vrtout <- eventReactive(input$bfastDisplayButton,
+  #                         {
+  #                           req(input$bfastDisplayButton)
+  #                           
+  #   
+  #   # validate(
+  #   #   need(
+  #       # req(file.exists(paste0(data_dir(), list.files(data_dir(), pattern="\\_threshold.tif$", recursive = T))),'Calculation In Progress')
+  #   #     )
+  #   # )
+  #  
+  #   
+  #   print(title)
+  #   req(bfast_res())
+  #   # req(file.exists(paste0(data_dir(),"/1/results/bfast_",title,"/bfast_",title,"_threshold.tif")))
+  #   #############################################################
+  #   ### MERGE AS VRT
+  #   print(title)
+  # 
+  # })
   ##################################################################################################################################
   ############### Processing time as reactive
   process_time <- reactive({
     # req(bfast_res())
-    req(vrtout())
+    # req(vrtout())
     
     log_filename <- list.files(data_dir(),pattern="log",recursive = T)[1]
     print(paste0(data_dir(),"/",log_filename))
     readLines(paste0(data_dir(),"/",log_filename))
   })
   
+  ## list of available results to display
+  available_results <- reactive({
+    req(input$time_series_dir)
+    list.files(path= data_dir(), pattern = "_threshold.vrt$", recursive = TRUE)
+  })
+  output$list_thres <- renderUI({
+    req(input$time_series_dir)
+    selectInput(inputId = "results_thres",
+                label = "Results to display in output data directory",
+                choices = basename(available_results()),
+                selected= basename(available_results()),
+                multiple = FALSE
+    )
+  })
+  dis_result <- reactiveValues()
+  
+  observeEvent(input$bfastDisplayButton_a, {
+    req(input$time_series_dir)
+    
+    dis_result$a<- paste0(data_dir(),'/',input$results_thres)
+  })
+  
+  observeEvent(input$bfastDisplayButton_c, {
+    req(bfast_res())
+    req(input$time_series_dir)
+    
+    data_dir <- data_dir()
+    load(paste0(data_dir(),"/my_work_space.RData"))
+    dis_result$a <- paste0(data_dir,"/bfast_",title,"_threshold.vrt")
+    
+  })  
   ############### Display the results as map
   ## render the map
   output$display_res  <-  renderLeaflet({
     print('Check: Display the map')
     # req(bfast_res())
-    req(vrtout())
-    print(vrtout())
-    pal <- colorNumeric(c(  "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"), values(vrtout()),
+    # req(vrtout())
+    if (is.null(dis_result$a)) return()
+    
+    print(dis_result$a)
+    r<- raster(dis_result$a)
+    
+    ## this is a so far failed attempt to add labels to the legend :( 
+    rf <- as.factor(r)
+    rat <- levels(rf)[[1]]
+    rat[["label"]] <-c("No data","No change","Small negative","Medium negative","Large negative",
+                     "Very large negative","Small positive","Medium positive","Large positive","Very large positive")
+    levels(rf) <- rat
+    # print(levels(rf))
+    print(rf)
+    print(levels(rf))
+    print( rat[["label"]])
+    # print(values(r))
+    lab <- factor(c("No data","Small negative","Medium negative","Large negative",
+                                     "Very large negative","Small positive","Medium positive","Large positive","Very large positive"))
+    colorspal <- factor(c( 	 "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"))
+    pal <- colorNumeric(c(  "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"), values(rf),
                         na.color = "transparent")
     m <- leaflet() %>% addTiles() %>%
       addProviderTiles('Esri.WorldImagery') %>% 
       addProviderTiles("CartoDB.PositronOnlyLabels")%>% 
-      addRasterImage(vrtout(), colors = pal, opacity = 0.8, group='Results') %>%
-      addLegend(pal = pal, values = values(vrtout()),
+      addRasterImage(rf, colors = pal, opacity = 0.8, group='Results') %>%
+      addLegend(
+                # pal = pal,
+                colors=colorspal,
+                values = values(rf),
+                # labFormat = labelFormat(prefix = "(", suffix = ")%", between = ", "),
                 title = "BFAST results"
-                # ,labels=c("No data","No change","Small negative","Medium negative","Large negative",
-                #                                  "Very large negative","Small positive","Medium positive","Large positive","Very large positive") ## doesnt work-- fix layer labels
+                ,labels= lab## doesnt work-- fix layer labels
       ) %>% addLayersControl(
         overlayGroups = c("Results"),
         options = layersControlOptions(collapsed = FALSE)
@@ -478,7 +565,7 @@ shinyServer(function(input, output, session) {
   ############### Display time
   output$message <- renderText({
     req(bfast_res())
-    req(vrtout())
+    # req(vrtout())
     
     print("processing time")
     process_time()

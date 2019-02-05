@@ -20,7 +20,11 @@ packages(DT)
 packages(dismo)
 packages(stringr)
 packages(plyr)
+packages(tictoc)
 
 ## Packages for BFAST
+packages(bfast)
+# set bfast to run 'fast'
+set_fast_options() 
 packages(bfastSpatial)
 packages(parallel)
