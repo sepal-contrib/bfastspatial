@@ -107,17 +107,17 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
                                      formula      = as.Formula(formula),
                                      order        = order, 
                                      history      = history,
-                                     filename     = tmpres,
+                                     filename     = result,
                                      type         = type,
                                      returnLayers = returnLayers,
                                      mc.cores     = detectCores()))
       
       
       #################### SET NODATA TO NONE IN THE TIME SERIES STACK
-      system(sprintf("gdal_translate -a_nodata none -co COMPRESS=LZW %s %s",
-                     tmpres,
-                     result
-      ))
+      # system(sprintf("gdal_translate -a_nodata none -co COMPRESS=LZW %s %s",
+      #                tmpres,
+      #                result
+      # ))
       
       
       write(paste0("This process started on ", start_time," and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")," for a total time of ", time[[3]]/60," minutes"), log_filename, append=TRUE)
@@ -216,15 +216,15 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
                                         formula  = as.Formula(formula),
                                         order    = order, 
                                         history  = history,
-                                        filename = tmpoutfl,
+                                        filename = outfl,
                                         type     = type,
                                         mc.cores = detectCores())
                  
                  #################### SET NODATA TO NONE IN THE TIME SERIES STACK
-                 system(sprintf("gdal_translate -a_nodata none -co COMPRESS=LZW %s %s",
-                                tmpoutfl,
-                                outfl
-                 ))
+                 # system(sprintf("gdal_translate -a_nodata none -co COMPRESS=LZW %s %s",
+                 #                tmpoutfl,
+                 #                outfl
+                 # ))
                  
                  outfl
                }
@@ -280,10 +280,10 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   # proc.time() - ptm
   # print(time1())
   
-  #################### DELETE TMP
-  system(sprintf("rm %s",
-                 paste0(results_directory,"tmp_*")
-  ))
+  # #################### DELETE TMP
+  # system(sprintf("rm %s",
+  #                paste0(results_directory,"tmp_*")
+  # ))
   
   sink()
 } ### End of DATA AVAILABLE loop
