@@ -238,8 +238,31 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
           the_stack
         ))
       
-
+      ## Post-processing ####
+      # output the maximum of the breakpoint dates for all sequential outputs
+      numfiles<- length(list.files(results_directory,pattern='.tif'))
+      outputfile   <- paste0(results_directory,"bfast_",title,'_breakpoints.tif')
       
+      system(sprintf("gdal_calc.py %s --co=COMPRESS=LZW --type=Float32 --overwrite --outfile=%s --calc=\"%s\"",
+                     paste(paste0('-',LETTERS[1:numfiles],' ',list.files(results_directory,pattern='.tif',full.names = T), ' --',LETTERS[1:numfiles],'_band=1'),collapse=" "),
+                     outputfile,
+                     if(LETTERS[numfiles]>3){
+                       nummax<- numfiles-2
+                       paste(
+                         paste(replicate(nummax, "maximum"),'(', collapse = ""),
+                         paste('maximum(',LETTERS[1:numfiles][1],',',LETTERS[1:numfiles][2],')'),
+                         paste( ',',LETTERS[3:numfiles],')', collapse = "")
+                         , collapse = "")
+                       
+                     }else if(LETTERS[numfiles]==2){
+                       print(paste('maximum(',LETTERS[1:numfiles][1],',',LETTERS[1:numfiles][2],')'))
+                       
+                     }else if(LETTERS[numfiles]==1){
+                       print(paste('maximum(',LETTERS[1:numfiles][1],')'))
+                       
+                     }
+                     
+      ))
       write(paste0("This process started on ", 
                    start_time," and ended on ",
                    format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
