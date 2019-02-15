@@ -90,6 +90,7 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   log_filename <- file.path(results_directory,paste0(format(Sys.time(), "%Y-%m-%d-%H-%M-%S"),"_bfast_", title, ".log"))
   start_time   <- format(Sys.time(), "%Y/%m/%d %H:%M:%S")
   
+  tmpres       <- file.path(results_directory, paste0("tmp_bfast_",title, ".tif"))
   result       <- file.path(results_directory, paste0("bfast_",title, ".tif"))
   
   outputfile   <- paste0(results_directory,"bfast_",title,'_threshold.tif')
@@ -106,10 +107,17 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
                                      formula      = as.Formula(formula),
                                      order        = order, 
                                      history      = history,
-                                     filename     = result,
+                                     filename     = tmpres,
                                      type         = type,
                                      returnLayers = returnLayers,
                                      mc.cores     = detectCores()))
+      
+      
+      #################### SET NODATA TO NONE IN THE TIME SERIES STACK
+      system(sprintf("gdal_translate -a_nodata none -co COMPRESS=LZW %s %s",
+                     tmpres,
+                     result
+      ))
       
       
       write(paste0("This process started on ", start_time," and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")," for a total time of ", time[[3]]/60," minutes"), log_filename, append=TRUE)
@@ -198,7 +206,9 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
       bfmSpatialSq <- function(start, end, timeStack, ...){
         lapply(start:end,
                function(year){
+                 tmpoutfl <- paste0(results_directory,"tmp_bfast_",title,"_year",year,'.tif')
                  outfl <- paste0(results_directory,"bfast_",title,"_year",year,'.tif')
+                 
                  bfm_year <- bfmSpatial(timeStack, 
                                         start    = c(year, 1), 
                                         monend   = c(year + 1, 1),
@@ -206,9 +216,16 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
                                         formula  = as.Formula(formula),
                                         order    = order, 
                                         history  = history,
-                                        filename = outfl,
+                                        filename = tmpoutfl,
                                         type     = type,
                                         mc.cores = detectCores())
+                 
+                 #################### SET NODATA TO NONE IN THE TIME SERIES STACK
+                 system(sprintf("gdal_translate -a_nodata none -co COMPRESS=LZW %s %s",
+                                tmpoutfl,
+                                outfl
+                 ))
+                 
                  outfl
                }
         )
@@ -221,8 +238,14 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
           the_stack
         ))
       
+
       
-      write(paste0("This process started on ", start_time," and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")," for a total time of ", time[[3]]/60," minutes"), log_filename, append=TRUE)
+      write(paste0("This process started on ", 
+                   start_time," and ended on ",
+                   format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
+                   " for a total time of ", 
+                   time[[3]]/60," minutes"), 
+            log_filename, append=TRUE)
       
     }##End of SEQUENTIAL loop
     
@@ -233,6 +256,12 @@ if(file.exists(paste0(the_dir,'/','stack.vrt'))){
   # Stop the clock
   # proc.time() - ptm
   # print(time1())
+  
+  #################### DELETE TMP
+  system(sprintf("rm %s",
+                 paste0(results_directory,"tmp_*")
+  ))
+  
   sink()
 } ### End of DATA AVAILABLE loop
 

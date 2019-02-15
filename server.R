@@ -420,7 +420,7 @@ shinyServer(function(input, output, session) {
       }
       else{
         invalidateLater(2001)
-        print("No process seems to be running")
+        print("Preparing data...")
       }
      
   })
