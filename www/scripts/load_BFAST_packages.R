@@ -20,7 +20,7 @@ packages(DT)
 packages(dismo)
 packages(stringr)
 packages(plyr)
-packages(tictoc)
+#packages(tictoc)
 
 ## Packages for BFAST
 packages(bfast)
