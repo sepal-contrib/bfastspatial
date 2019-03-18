@@ -142,8 +142,12 @@ shinyServer(function(input, output, session) {
   list_year <- reactive({
     req(data_dir())
     data_dir <- data_dir()
-    list <- list.files(data_dir,pattern = glob2rx("*_stack*.tif"),recursive = T)
-    unlist(lapply(list,function(x){unlist(strsplit(x,split = "_"))[length(unlist(strsplit(x,split = "_")))-1]}))
+    first <- list.dirs(data_dir,recursive = F)[1]
+    dates <- unlist(read.csv(paste0(first,'/','dates.csv'),header = FALSE))
+    years <- str_split_fixed(unlist(dates),"-",3)[,1]
+    years
+    # list <- list.files(data_dir,pattern = glob2rx("*_stack*.tif"),recursive = T)
+    # unlist(lapply(list,function(x){unlist(strsplit(x,split = "_"))[length(unlist(strsplit(x,split = "_")))-1]}))
   })
   
   ################################# Take the minimum as beginning Date
@@ -286,6 +290,15 @@ shinyServer(function(input, output, session) {
     )
   })
   
+  output$ui_option_chunk <- renderUI({
+    req(input$time_series_dir)
+    selectInput(inputId = "option_chunk",
+                label = "Number of chunks",
+                choices = c(128,256,512,1024),#,"Sequential"),
+                selected= 512
+    )
+  })
+  
   
   ##################################################################################################################################
   ############### Parameters title as a reactive
@@ -370,6 +383,8 @@ shinyServer(function(input, output, session) {
                                formula_elements    <- unlist(input$option_formula)
                                returnLayers        <- c(as.character(input$option_returnLayers))
                                
+                               chunk_size          <- as.numeric(input$option_chunk)
+                               
                                type_num            <- c("OC","OM","R","M","f")[which(c("OLS-CUSUM", "OLS-MOSUM", "RE", "ME","fluctuation")==type)]
                                mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
                                formula             <- paste0("response ~ ",paste(formula_elements,sep = " " ,collapse = "+"))
@@ -379,29 +394,18 @@ shinyServer(function(input, output, session) {
                                print(formula)
                                print(type)
                                print(returnLayers)
+                               print(chunk_size)
+                               
                                mask_file_path <- input$mask_file_path
                                title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,'_',mode,'_',historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
                                
-                               
-                               
                                tiles <- input$option_tiles
-                               save(data_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
+                               
+                               save(data_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
                                     file = paste0(data_dir,"/my_work_space.RData"))
                                
-                               for(the_dir in tiles){#list.dirs(data_dir, recursive=FALSE)){
-                                print(paste0('BFAST running for ',the_dir))
-                               # saveRDS(the_dir,file = paste0(data_dir,"/the_dir.rds"))  
-                                 withProgress(message = paste0('BFAST running for ',the_dir),
-                                              value = 0,
-                                              {
-                                                setProgress(value = .1)
-                                                system(paste0("nohup Rscript www/scripts/bfast_run.R ",data_dir,' ', the_dir,' & '
-                                                ))
-                                                # source('www/scripts/bfast_run.R')
-                                              })
-                              
-                               }
-                               print('done?')
+                               system(paste0("nohup Rscript www/scripts/bfast_run_chunks.R ",data_dir,' & '))
+
                                
                              })
   
@@ -469,9 +473,8 @@ shinyServer(function(input, output, session) {
   ##################################################################################################################################
   ############### Processing time as reactive
   process_time <- reactive({
-    # req(bfast_res())
-    # req(vrtout())
-    
+    req(bfast_res())
+
     log_filename <- list.files(data_dir(),pattern="log",recursive = T)[1]
     print(paste0(data_dir(),"/",log_filename))
     readLines(paste0(data_dir(),"/",log_filename))
@@ -482,6 +485,7 @@ shinyServer(function(input, output, session) {
     req(input$time_series_dir)
     list.files(path= data_dir(), pattern = "_threshold.vrt$", recursive = TRUE)
   })
+  
   output$list_thres <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "results_thres",
@@ -491,6 +495,7 @@ shinyServer(function(input, output, session) {
                 multiple = FALSE
     )
   })
+  
   dis_result <- reactiveValues()
   
   observeEvent(input$bfastDisplayButton_a, {
@@ -521,32 +526,37 @@ shinyServer(function(input, output, session) {
     
     ## this is a so far failed attempt to add labels to the legend :( 
     rf <- as.factor(r)
-    rat <- levels(rf)[[1]]
-    rat[["label"]] <-c("No data","No change","Small negative","Medium negative","Large negative",
-                     "Very large negative","Small positive","Medium positive","Large positive","Very large positive")
-    levels(rf) <- rat
-    # print(levels(rf))
+
     print(rf)
     print(levels(rf))
-    print( rat[["label"]])
-    # print(values(r))
-    lab <- factor(c("No data","Small negative","Medium negative","Large negative",
-                                     "Very large negative","Small positive","Medium positive","Large positive","Very large positive"))
-    colorspal <- factor(c( 	 "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"))
-    pal <- colorNumeric(c(  "#fdfdfd","#f8ffa3","#fdc980","#e31a1c","#a51013","#c3e586","#96d165","#58b353","#1a9641"), values(rf),
+
+    lab <- factor(c("No change",
+                    "Small negative","Medium negative","Large negative","Very large negative",
+                    "Small positive","Medium positive","Large positive","Very large positive"))
+    
+    colorspal <- factor(c("#fdfdfd",
+                          "#f8ffa3","#fdc980","#e31a1c","#a51013",
+                          "#c3e586","#96d165","#58b353","#1a9641"))
+    
+    pal <- colorNumeric(c("#fdfdfd",
+                          "#f8ffa3","#fdc980","#e31a1c","#a51013",
+                          "#c3e586","#96d165","#58b353","#1a9641"), 
+                        values(rf),
                         na.color = "transparent")
+    
     m <- leaflet() %>% addTiles() %>%
       addProviderTiles('Esri.WorldImagery') %>% 
+      
       addProviderTiles("CartoDB.PositronOnlyLabels")%>% 
+      
       addRasterImage(rf, colors = pal, opacity = 0.8, group='Results') %>%
-      addLegend(
-                # pal = pal,
-                colors=colorspal,
+      
+      addLegend(colors=colorspal,
                 values = values(rf),
-                # labFormat = labelFormat(prefix = "(", suffix = ")%", between = ", "),
                 title = "BFAST results"
-                ,labels= lab## doesnt work-- fix layer labels
-      ) %>% addLayersControl(
+                ,labels= lab) %>% 
+      
+      addLayersControl(
         overlayGroups = c("Results"),
         options = layersControlOptions(collapsed = FALSE)
       )  
