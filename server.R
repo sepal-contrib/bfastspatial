@@ -219,7 +219,7 @@ shinyServer(function(input, output, session) {
     selectInput(inputId = 'option_order',
                 label = "Order parameter",
                 choices = 1:5,
-                selected = 3
+                selected = 1
     )
   })
   
