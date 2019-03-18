@@ -7,10 +7,10 @@ setwd("/home/dannunzio/bfastspatial/")
 source("www/scripts/load_BFAST_packages.R",echo = TRUE)
 library(shiny)
 
-# options(echo=TRUE)
-# args <- commandArgs(TRUE)
-# print(args[1])
-# data_dir <- args[1]
+options(echo=TRUE)
+args <- commandArgs(TRUE)
+print(args[1])
+data_dir <- args[1]
 
 load(paste0(data_dir,"/my_work_space.RData"))
 
