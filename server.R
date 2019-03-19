@@ -370,7 +370,8 @@ shinyServer(function(input, output, session) {
                                
                                data_dir            <- paste0(data_dir(),"/")
                                print(data_dir)
-                               
+                               progress_file <- file.path(data_dir(), "processing.txt")
+                               system(paste0('echo "Preparing data..." > ', progress_file))
                                historical_year_beg <- as.numeric(input$option_h_beg)
                                monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
                                monitoring_year_end <- as.numeric(input$option_m_beg)[2]
@@ -416,7 +417,7 @@ shinyServer(function(input, output, session) {
   output$print_PROGRESS = renderText({
     invalidateLater(1000)
     req(bfast_res())
-    
+
     progress_file <- file.path(data_dir(), "processing.txt")
     if(file.exists(progress_file)){
       NLI <- as.integer(system2("wc", args = c("-l", progress_file," | awk '{print $1}'"), stdout = TRUE))
@@ -569,7 +570,6 @@ shinyServer(function(input, output, session) {
   ############### Display parameters
   output$parameterSummary <- renderText({
     req(input$time_series_dir)
-    print('or here?')
     print(paste0("Parameters are : ",parameters()))
   })
   

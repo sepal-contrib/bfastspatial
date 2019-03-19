@@ -2,16 +2,14 @@
 
 # #################################################################################################################################
 ############### # load packages
-setwd("/home/dannunzio/bfastspatial/")
 
 source("www/scripts/load_BFAST_packages.R",echo = TRUE)
-library(shiny)
 
 options(echo=TRUE)
 args <- commandArgs(TRUE)
 print(args[1])
 data_dir <- args[1]
-
+# data_dir <- '/home/finegold/bfast_data_test/'
 load(paste0(data_dir,"/my_work_space.RData"))
 
 for(the_dir in tiles){
@@ -24,7 +22,7 @@ the_path_dir
 
 ############### write the consule outputs 
 sink(paste0(data_dir,"processing.txt"))
-
+print("Preparing data...")
 print(paste0('Running time series analysis for: ',basename(the_path_dir)))
 # the_dir <- paste0(data_dir,basename(the_dir),"/")
 # Start the clock!
@@ -112,12 +110,11 @@ for(stack_name in list_stack){
   }, error=function(e){})
   
   ############# READ THE BRICK
-  #stack   <- brick(stack_name)
   info    <- GDALinfo(stack_name)
-  
+
   ############# GET BRICK SIZE
-  stack_x <- as.numeric(info[2])
-  stack_y <- as.numeric(info[1])
+  stack_x <- dim(stack)[2]
+  stack_y <- dim(stack)[1]
   
   nx <- floor(stack_x / chunk_size)
   ny <- floor(stack_y / chunk_size)
@@ -134,7 +131,7 @@ for(stack_name in list_stack){
   
   names(sizes) <- c("size_x","size_y","start_x","start_y")
 
-  ############# NAME OF OVERALL RESULT FOR THE TILE
+  ############# NAME OF OVERALL RESULT FROM THE TILE
   result       <- file.path(results_directory, paste0("bfast_",title, ".tif"))
   
   if(!file.exists(result)){
@@ -180,7 +177,9 @@ for(stack_name in list_stack){
                                                 type         = type,
                                                 returnLayers = returnLayers,
                                                 mc.cores     = detectCores()))
-            
+
+            ############# WRITE THE TIME TO A LOG
+
             write(paste0("Chunk: ",
                          chunk,
                          " Start time: ",chunk_start_time,
@@ -211,22 +210,23 @@ for(stack_name in list_stack){
                   fail_log_filename, 
                   append=TRUE)
             
-            #loop_process()
-            
-            #system(sprintf(paste0("rm ", chunks_directory,"tmp_chunk*.tif")))
-            
-          })
+
+            return(chunktime)
+          }
+          
+)
           
           
         }# END OF TEST EXISTS CHUNK
       }# END OF THE CHUNK LOOP
       
+      ############# COMBINE ALL THE CHUNKS
       system(sprintf("gdal_merge.py -co COMPRESS=LZW -o %s %s",
                      result,
-                     #paste0(results_directory, paste0("bfast_",title, ".tif")),
                      paste0(chunks_directory, paste0("chunk_*","_bfast_",title, ".tif"))
       ))
       
+      ############# WRITE TIMING INFO TO A LOG
       write(paste0("This process started on ", start_time,
                    " and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
                    " Number of CPUs: ",detectCores(),
@@ -234,6 +234,7 @@ for(stack_name in list_stack){
             log_filename, 
             append=TRUE)
       
+      ############# NAME OF THE THRESHOLDED OUTPUT
       outputfile   <- paste0(results_directory,"bfast_",title,'_threshold.tif')
       
       ## Post-processing ####
@@ -363,45 +364,42 @@ for(stack_name in list_stack){
                                                                        filename = chunk_bfast_year_name,
                                                                        type     = type,
                                                                        mc.cores = detectCores())
+                     
+                                                                 write(paste0("Chunk: ", 
+                                                                              chunk,
+                                                                              " Start time: ",chunk_start_time,
+                                                                              " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
+                                                                              " for a total time of ", chunktime[[3]]/60," minutes"),
+                                                                       chunk_log_year_filename, 
+                                                                       append=TRUE)
+                                                                 return(bfm_year)
+                                                                 
                      }
                      
                      tryCatch({ 
-                       
-                       loop_process()
                        chunk_log_year_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_year_",year,"_params_",title, ".log")
                        
-                       write(paste0("Chunk: ", 
-                                    chunk,
-                                    " Start time: ",chunk_start_time,
-                                    " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                                    " for a total time of ", chunktime[[3]]/60," minutes"),
-                             chunk_log_year_filename, 
-                             append=TRUE)
+                       loop_process()
                        
+                      
                        system(sprintf(paste0("rm ", chunks_directory,"tmp_chunk*.tif")))
                        
                      },error=function(e){
-                       print(paste0("Failed process on chunk ",chunk))
-                       
-                       fail_log_year_filename <- paste0(chunks_directory,"fail_chunk_",chunk,"_year_",year,"_params_",title, ".log")
-                       
-                       write(paste0("Failed Chunk: ", 
-                                    chunk,
-                                    " Start time: ",chunk_start_time,
-                                    " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
-                             fail_log_year_filename, 
-                             append=TRUE)
-                       
-                       loop_process()
-                       chunk_log_year_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_year_",year,"_params_",title, ".log")
-                       
-                       write(paste0("Chunk: ", 
-                                    chunk,
-                                    " Start time: ",chunk_start_time,
-                                    " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                                    " for a total time of ", chunktime[[3]]/60," minutes"),
-                             chunk_log_year_filename, 
-                             append=TRUE)
+                       # print(paste0("Failed process on chunk ",chunk))
+                       # 
+                       # fail_log_year_filename <- paste0(chunks_directory,"fail_chunk_",chunk,"_year_",year,"_params_",title, ".log")
+                       # 
+                       # write(paste0("Failed Chunk: ",
+                       #              chunk,
+                       #              " Start time: ",chunk_start_time,
+                       #              " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
+                       #       fail_log_year_filename,
+                       #       append=TRUE)
+                       # 
+                       # loop_process()
+                       # chunk_log_year_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_year_",year,"_params_",title, ".log")
+
+                
                      })
                      
                    } ### END OF CHUNK EXISTS
@@ -421,15 +419,13 @@ for(stack_name in list_stack){
         
       } ### END OF THE BFASTSQ FUNCTION
       
-      
+      ############# RUN BFAST IN SEQUENTIAL
       time <- system.time(
         bfmSpatialSq(
           monitoring_year_beg,
           monitoring_year_end,
           stack_name
         ))
-      
-      
       
       
       
