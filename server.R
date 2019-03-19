@@ -326,8 +326,14 @@ shinyServer(function(input, output, session) {
     formula             <- paste0("response ~ ",paste(formula_elements,sep = " " ,collapse = "+"))
 
     mask_file_path <- input$mask_file_path
-    title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,'_',mode,'_',historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
-    
+    title <- paste0("O_",order,
+                    "_H_",paste0(history,collapse = "-"),
+                    "_T_",type_num,
+                    "_F_",paste0(substr(formula_elements,1,1),collapse= ""),
+                    mask_opt,'_',
+                    mode,'_',
+                    chunk_size,'_',
+                    historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
     title
   })
   
@@ -418,7 +424,14 @@ shinyServer(function(input, output, session) {
                                print(chunk_size)
                                
                                mask_file_path <- input$mask_file_path
-                               title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,'_',mode,'_',historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
+                               title <- paste0("O_",order,
+                                               "_H_",paste0(history,collapse = "-"),
+                                               "_T_",type_num,
+                                               "_F_",paste0(substr(formula_elements,1,1),collapse= ""),
+                                               mask_opt,'_',
+                                               mode,'_',
+                                               chunk_size,'_',
+                                               historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
                                
                                tiles <- input$option_tiles
                                
@@ -448,8 +461,7 @@ shinyServer(function(input, output, session) {
     }
     else{
       invalidateLater(2001)
-      print("Preparing data...")
-    }
+      }
     
   })
   

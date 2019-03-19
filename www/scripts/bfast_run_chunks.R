@@ -190,7 +190,7 @@ for(the_dir in tiles){
               
               loop_process()
               
-              system(sprintf(paste0("rm -f", chunks_directory,"tmp_chunk*.tif")))
+              system(sprintf(paste0("rm -f ", chunks_directory,"tmp_chunk*.tif")))
               
             },error=function(e){
               print(paste0("Still processing chunk ",chunk))
@@ -359,7 +359,7 @@ for(the_dir in tiles){
                        #       chunk_log_year_filename, 
                        #       append=TRUE)
                        
-                       system(sprintf(paste0("rm -f", chunks_directory,"tmp_chunk*.tif")))
+                       system(sprintf(paste0("rm -f ", chunks_directory,"tmp_chunk*.tif")))
                        
                        bfm_year
                        
