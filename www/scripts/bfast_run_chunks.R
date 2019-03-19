@@ -34,10 +34,16 @@ print(paste0('Running time series analysis for: ',basename(the_path_dir)))
 
 # print('BFAST is processing, make sure you are running an instance with large CPU capacity, such as a c4.4xlarge (12) or c4.8xlarge (13)')
 
-stack_name <- paste0(the_path_dir,'/','stack.vrt') 
+main_stack_name <- paste0(the_path_dir,'/','stack.vrt')
+sub_stacks <- list.files(the_path_dir,pattern="_stack.vrt")
+list_stack <- list()
+
+if(length(sub_stacks) > 0){list_stack <- paste0(the_path_dir,'/',sub_stacks)}else{if(file.exists(main_stack_name)){list_stack <- main_stack_name}}
 
 ############### check if the time series input data exists
-if(file.exists(stack_name)){
+for(stack_name in list_stack){
+  stack_name <- list_stack[1]
+  stack_basename <- substr(basename(stack_name),1,nchar(basename(stack_name))-4)
   
   # print('Running BFAST this takes some time... if you are busy you can close the window and view the results later, or wait to see the results displayed when the algorithm finishes processing')
   # print('If you close this window make sure the process runs by changing the Minimum time frame in the SEPAL user resources to at least 1 hour')
@@ -52,7 +58,8 @@ if(file.exists(stack_name)){
   
   dates          <- unlist(read.csv(paste0(the_path_dir,'/','dates.csv'),header = FALSE))
   
-  results_directory <- file.path(output_directory,paste0("bfast_",title,'/'))
+  results_directory <- file.path(output_directory,paste0("bfast_",
+                                                         stack_basename,"_",title,'/'))
   dir.create(results_directory,recursive = T,showWarnings = F)
   
   chunks_directory <- file.path(results_directory,paste0("chunks",'/'))
@@ -105,7 +112,7 @@ if(file.exists(stack_name)){
   }, error=function(e){})
   
   ############# READ THE BRICK
-  stack   <- brick(stack_name)
+  #stack   <- brick(stack_name)
   info    <- GDALinfo(stack_name)
   
   ############# GET BRICK SIZE
@@ -156,6 +163,8 @@ if(file.exists(stack_name)){
 
           system(sprintf("rm -f %s",chunk_bfast_name))
           
+          chunk_log_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_params_",title, ".log")
+          
           Sys.sleep(1)
           
           ############# CREATE A FUNCTION TO IMPLEMENT BFAST
@@ -171,6 +180,15 @@ if(file.exists(stack_name)){
                                                 type         = type,
                                                 returnLayers = returnLayers,
                                                 mc.cores     = detectCores()))
+            
+            write(paste0("Chunk: ",
+                         chunk,
+                         " Start time: ",chunk_start_time,
+                         " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
+                         " for a total time of ", chunktime[[3]]/60," minutes"),
+                  chunk_log_filename,
+                  append=TRUE)
+            
             chunktime
           }
           
@@ -178,15 +196,6 @@ if(file.exists(stack_name)){
             print(paste0("Processing chunk ",chunk))
             
             loop_process()
-            chunk_log_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_params_",title, ".log")
-            
-            write(paste0("Chunk: ", 
-                         chunk,
-                         " Start time: ",chunk_start_time,
-                         " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                         " for a total time of ", chunktime[[3]]/60," minutes"),
-                  chunk_log_filename, 
-                  append=TRUE)
             
             system(sprintf(paste0("rm ", chunks_directory,"tmp_chunk*.tif")))
             
@@ -202,19 +211,9 @@ if(file.exists(stack_name)){
                   fail_log_filename, 
                   append=TRUE)
             
-            loop_process()
+            #loop_process()
             
-            chunk_log_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_params_",title, ".log")
-            
-            write(paste0("Chunk: ", 
-                         chunk,
-                         " Start time: ",chunk_start_time,
-                         " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                         " for a total time of ", chunktime[[3]]/60," minutes"),
-                  chunk_log_filename, 
-                  append=TRUE)
-            
-            system(sprintf(paste0("rm ", chunks_directory,"tmp_chunk*.tif")))
+            #system(sprintf(paste0("rm ", chunks_directory,"tmp_chunk*.tif")))
             
           })
           
@@ -223,7 +222,8 @@ if(file.exists(stack_name)){
       }# END OF THE CHUNK LOOP
       
       system(sprintf("gdal_merge.py -co COMPRESS=LZW -o %s %s",
-                     paste0(results_directory, paste0("bfast_",title, ".tif")),
+                     result,
+                     #paste0(results_directory, paste0("bfast_",title, ".tif")),
                      paste0(chunks_directory, paste0("chunk_*","_bfast_",title, ".tif"))
       ))
       
@@ -308,10 +308,12 @@ if(file.exists(stack_name)){
       
       system(sprintf("gdalbuildvrt %s %s",
                      paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
-                     paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")
+                     paste0(data_dir,
+                            "/*/results/",
+                            "bfast_","*",title,"/",
+                            "bfast_","*",title,"_threshold.tif")
       ))
-      print(paste0(data_dir,"/bfast_",title,"_threshold.vrt"))
-      
+    
       system(sprintf(paste0("rm -f ",results_directory,"tmp*.tif")))
       system(sprintf(paste0("rm -f ", chunks_directory,"tmp*.tif")))
       

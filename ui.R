@@ -26,6 +26,7 @@ options(stringsAsFactors=FALSE)
 options(shiny.launch.browser=T)
 
 source("www/scripts/load_packages.R",echo = TRUE)
+source("www/scripts/load_BFAST_packages.R",echo = TRUE)
 
 
 ####################################################################################

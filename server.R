@@ -209,11 +209,11 @@ shinyServer(function(input, output, session) {
                 max = as.numeric(end_year()),
                 value = c((as.numeric(input$option_h_beg) + as.numeric(end_year()))/2,as.numeric(end_year())),
                 sep = ""
-                )
+    )
   })
   
   
-
+  
   output$ui_option_order <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = 'option_order',
@@ -293,7 +293,7 @@ shinyServer(function(input, output, session) {
   output$ui_option_chunk <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "option_chunk",
-                label = "Number of chunks",
+                label = "Processing chunk size",
                 choices = c(128,256,512,1024),#,"Sequential"),
                 selected= 512
     )
@@ -360,7 +360,7 @@ shinyServer(function(input, output, session) {
     actionButton('bfastDisplayButton_a', textOutput('display_button_a'))
   })
   
-
+  
   ##################################################################################################################################
   ############### Run BFAST
   bfast_res <- eventReactive(input$bfastStartButton,
@@ -405,7 +405,9 @@ shinyServer(function(input, output, session) {
                                     file = paste0(data_dir,"/my_work_space.RData"))
                                
                                system(paste0("nohup Rscript www/scripts/bfast_run_chunks.R ",data_dir,' & '))
-
+                               
+                               print("done")
+                               
                                
                              })
   
@@ -415,40 +417,40 @@ shinyServer(function(input, output, session) {
     invalidateLater(1000)
     req(bfast_res())
     
-      progress_file <- file.path(data_dir(), "processing.txt")
-      if(file.exists(progress_file)){
-        NLI <- as.integer(system2("wc", args = c("-l", progress_file," | awk '{print $1}'"), stdout = TRUE))
-        NLI <- NLI + 1 
-        invalidateLater(1000)
-        paste(readLines(progress_file, n = NLI, warn = FALSE), collapse = "\n")
-      }
-      else{
-        invalidateLater(2001)
-        print("Preparing data...")
-      }
-     
-  })
-
-# does the data exist? 
-# 
-# IsThereNewFile=function(){  #  cheap function whose values over time will be tested for equality;
-#     #  inequality indicates that the underlying value has changed and needs to be 
-#     #  invalidated and re-read using valueFunc
-#     
-#     filenames <- list.files(pattern="*.tif", full.names=TRUE)
-#     length(filenames)
-#   }
-  
-  
+    progress_file <- file.path(data_dir(), "processing.txt")
+    if(file.exists(progress_file)){
+      NLI <- as.integer(system2("wc", args = c("-l", progress_file," | awk '{print $1}'"), stdout = TRUE))
+      NLI <- NLI + 1 
+      invalidateLater(1000)
+      paste(readLines(progress_file, n = NLI, warn = FALSE), collapse = "\n")
+    }
+    else{
+      invalidateLater(2001)
+      print("Preparing data...")
+    }
     
-# outputcreated <- reactive({
-# validate(
-#   need(file.exists(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")),'Calculation In Progress'),
-#   need(file.info(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif"))$mtime > Sys.time()-5,'Calculation In Progress')
-# )
-# x <- readRDS('LargeComputationOutput')
-# })
-
+  })
+  
+  # does the data exist? 
+  # 
+  # IsThereNewFile=function(){  #  cheap function whose values over time will be tested for equality;
+  #     #  inequality indicates that the underlying value has changed and needs to be 
+  #     #  invalidated and re-read using valueFunc
+  #     
+  #     filenames <- list.files(pattern="*.tif", full.names=TRUE)
+  #     length(filenames)
+  #   }
+  
+  
+  
+  # outputcreated <- reactive({
+  # validate(
+  #   need(file.exists(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")),'Calculation In Progress'),
+  #   need(file.info(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif"))$mtime > Sys.time()-5,'Calculation In Progress')
+  # )
+  # x <- readRDS('LargeComputationOutput')
+  # })
+  
   
   # vrtout <- eventReactive(input$bfastDisplayButton,
   #                         {
@@ -474,7 +476,7 @@ shinyServer(function(input, output, session) {
   ############### Processing time as reactive
   process_time <- reactive({
     req(bfast_res())
-
+    
     log_filename <- list.files(data_dir(),pattern="log",recursive = T)[1]
     print(paste0(data_dir(),"/",log_filename))
     readLines(paste0(data_dir(),"/",log_filename))
@@ -526,10 +528,10 @@ shinyServer(function(input, output, session) {
     
     ## this is a so far failed attempt to add labels to the legend :( 
     rf <- as.factor(r)
-
+    
     print(rf)
     print(levels(rf))
-
+    
     lab <- factor(c("No change",
                     "Small negative","Medium negative","Large negative","Very large negative",
                     "Small positive","Medium positive","Large positive","Very large positive"))
