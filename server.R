@@ -306,12 +306,10 @@ shinyServer(function(input, output, session) {
     req(input$time_series_dir)
     
     data_dir            <- paste0(data_dir(),"/")
-    print(data_dir)
-    
-    historical_year_beg <- as.numeric(beg_year())
-    monitoring_year_beg <- as.numeric(input$option_m_beg)
-    monitoring_year_end <- as.numeric(end_year())
-    monitoring_year_end <- as.numeric(input$option_m_beg)
+
+    historical_year_beg <- as.numeric(input$option_h_beg)
+    monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
+    monitoring_year_end <- as.numeric(input$option_m_beg)[2]
     
     order               <- as.numeric(input$option_order)
     history             <- as.character(input$option_history)
@@ -319,14 +317,18 @@ shinyServer(function(input, output, session) {
     type                <- as.character(input$option_type)
     mask                <- as.character(input$option_useMask)
     formula_elements    <- unlist(input$option_formula)
-    returnLayers        <- as.character(input$option_returnLayers)
+    returnLayers        <- c(as.character(input$option_returnLayers))
+    
+    chunk_size          <- as.numeric(input$option_chunk)
     
     type_num            <- c("OC","OM","R","M","f")[which(c("OLS-CUSUM", "OLS-MOSUM", "RE", "ME","fluctuation")==type)]
     mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
     formula             <- paste0("response ~ ",paste(formula_elements,sep = " " ,collapse = "+"))
+
+    mask_file_path <- input$mask_file_path
+    title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,'_',mode,'_',historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
     
-    title <- paste0("O_",order,"_H_",paste0(history,collapse = "-"),"_T_",type_num,"_F_",paste0(substr(formula_elements,1,1),collapse= ""),mask_opt,historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
-    
+    title
   })
   
   ##################################################################################################################################
@@ -340,26 +342,43 @@ shinyServer(function(input, output, session) {
     actionButton('bfastStartButton', textOutput('start_button'))
   })
   ##################################################################################################################################
-  ############### Insert the display button
+  ############### Insert the display button only if in OVERALL mode
   output$DisplayButtonCurrent <- renderUI({
     req(input$time_series_dir)
     req(input$bfastStartButton)
+    req(mode() == "Overall")
     
     validate(need(input$option_tiles, "Missing input: Please select at least one folder to process"))
     validate(need(input$option_formula, "Missing input: Please select at least one element in the formula"))
     validate(need(input$option_returnLayers, "Missing input: Please select at least one layer to export"))
-    
+
     actionButton('bfastDisplayButton_c', textOutput('display_button_c'))
   })
+  
   ##################################################################################################################################
   ############### Insert the display button
   output$DisplayButtonAvailable <- renderUI({
     req(input$time_series_dir)
-    # req(input$bfastStartButton)
-    
     actionButton('bfastDisplayButton_a', textOutput('display_button_a'))
   })
   
+  ##################################################################################################################################
+  ############### Set the progress file as a reactive of the parameters
+  progress_file <- reactive({
+    req(input$time_series_dir)
+    req(parameters())
+    paste0(data_dir(),"/","processing_",parameters(),".txt")
+    })
+  
+  
+  ##################################################################################################################################
+  ############### SET A REACTIVE VARIABLE TO MONITOR STATUS
+  dis_result <- reactiveValues()
+  
+  mode <- reactive({
+    req(input$time_series_dir)
+    as.character(input$option_sequential)
+    })
   
   ##################################################################################################################################
   ############### Run BFAST
@@ -369,9 +388,10 @@ shinyServer(function(input, output, session) {
                                req(input$bfastStartButton)
                                
                                data_dir            <- paste0(data_dir(),"/")
-                               print(data_dir)
-                               progress_file <- file.path(data_dir(), "processing.txt")
+                               
+                               progress_file <- progress_file()
                                system(paste0('echo "Preparing data..." > ', progress_file))
+                               
                                historical_year_beg <- as.numeric(input$option_h_beg)
                                monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
                                monitoring_year_end <- as.numeric(input$option_m_beg)[2]
@@ -402,14 +422,14 @@ shinyServer(function(input, output, session) {
                                
                                tiles <- input$option_tiles
                                
-                               save(data_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
+                               save(data_dir,progress_file,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
                                     file = paste0(data_dir,"/my_work_space.RData"))
                                
                                system(paste0("nohup Rscript www/scripts/bfast_run_chunks.R ",data_dir,' & '))
                                
                                print("done")
                                
-                               
+                              
                              })
   
   #############################################################
@@ -418,7 +438,8 @@ shinyServer(function(input, output, session) {
     invalidateLater(1000)
     req(bfast_res())
 
-    progress_file <- file.path(data_dir(), "processing.txt")
+    progress_file <- progress_file()
+    
     if(file.exists(progress_file)){
       NLI <- as.integer(system2("wc", args = c("-l", progress_file," | awk '{print $1}'"), stdout = TRUE))
       NLI <- NLI + 1 
@@ -432,57 +453,7 @@ shinyServer(function(input, output, session) {
     
   })
   
-  # does the data exist? 
-  # 
-  # IsThereNewFile=function(){  #  cheap function whose values over time will be tested for equality;
-  #     #  inequality indicates that the underlying value has changed and needs to be 
-  #     #  invalidated and re-read using valueFunc
-  #     
-  #     filenames <- list.files(pattern="*.tif", full.names=TRUE)
-  #     length(filenames)
-  #   }
-  
-  
-  
-  # outputcreated <- reactive({
-  # validate(
-  #   need(file.exists(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif")),'Calculation In Progress'),
-  #   need(file.info(paste0(data_dir,"/*/results/bfast_",title,"/bfast_",title,"_threshold.tif"))$mtime > Sys.time()-5,'Calculation In Progress')
-  # )
-  # x <- readRDS('LargeComputationOutput')
-  # })
-  
-  
-  # vrtout <- eventReactive(input$bfastDisplayButton,
-  #                         {
-  #                           req(input$bfastDisplayButton)
-  #                           
-  #   
-  #   # validate(
-  #   #   need(
-  #       # req(file.exists(paste0(data_dir(), list.files(data_dir(), pattern="\\_threshold.tif$", recursive = T))),'Calculation In Progress')
-  #   #     )
-  #   # )
-  #  
-  #   
-  #   print(title)
-  #   req(bfast_res())
-  #   # req(file.exists(paste0(data_dir(),"/1/results/bfast_",title,"/bfast_",title,"_threshold.tif")))
-  #   #############################################################
-  #   ### MERGE AS VRT
-  #   print(title)
-  # 
-  # })
-  ##################################################################################################################################
-  ############### Processing time as reactive
-  process_time <- reactive({
-    req(bfast_res())
-    
-    log_filename <- list.files(data_dir(),pattern="log",recursive = T)[1]
-    print(paste0(data_dir(),"/",log_filename))
-    readLines(paste0(data_dir(),"/",log_filename))
-  })
-  
+  #############################################################
   ## list of available results to display
   available_results <- reactive({
     req(input$time_series_dir)
@@ -499,7 +470,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
-  dis_result <- reactiveValues()
+
   
   observeEvent(input$bfastDisplayButton_a, {
     req(input$time_series_dir)
@@ -513,9 +484,11 @@ shinyServer(function(input, output, session) {
     
     data_dir <- data_dir()
     load(paste0(data_dir(),"/my_work_space.RData"))
-    dis_result$a <- paste0(data_dir,"/bfast_",title,"_threshold.vrt")
+    if(mode == "Overall"){    dis_result$a <- paste0(data_dir,"/bfast_",title,"_threshold.vrt")}
+    if(mode == "Sequential"){    dis_result$a <- NULL}
     
-  })  
+  })
+  
   ############### Display the results as map
   ## render the map
   output$display_res  <-  renderLeaflet({
@@ -573,14 +546,23 @@ shinyServer(function(input, output, session) {
     print(paste0("Parameters are : ",parameters()))
   })
   
+  
+  ##################################################################################################################################
+  ############### Processing time as reactive
+  process_time <- reactive({
+    req(bfast_res())
+# 
+#     log_filename <- list.files(data_dir(),pattern="log",recursive = T)[1]
+#     print(paste0(data_dir(),"/",log_filename))
+#     readLines(paste0(data_dir(),"/",log_filename))
+  })
+  
   ##################################################################################################################################
   ############### Display time
   output$message <- renderText({
-    req(bfast_res())
-    # req(vrtout())
-    
-    print("processing time")
-    process_time()
+    #req(bfast_res())
+    # print("processing time")
+    # process_time()
   })
   
   ##################################################################################################################################
