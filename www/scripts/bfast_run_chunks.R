@@ -9,7 +9,7 @@ options(echo=TRUE)
 args <- commandArgs(TRUE)
 print(args[1])
 data_dir <- args[1]
-# data_dir <- '/home/finegold/bfast_data_test/'
+
 load(paste0(data_dir,"/my_work_space.RData"))
 
 for(the_dir in tiles){
@@ -20,18 +20,12 @@ for(the_dir in tiles){
 the_path_dir <- paste0(data_dir, the_dir, '/')
 the_path_dir
 
-############### write the consule outputs 
+############### write the console outputs 
 sink(paste0(data_dir,"processing.txt"))
 print("Preparing data...")
 print(paste0('Running time series analysis for: ',basename(the_path_dir)))
-# the_dir <- paste0(data_dir,basename(the_dir),"/")
-# Start the clock!
-# ptm <- proc.time()
-# 
-# print(paste0('The process has been running for: ', ptm))
 
-# print('BFAST is processing, make sure you are running an instance with large CPU capacity, such as a c4.4xlarge (12) or c4.8xlarge (13)')
-
+############### Get the list of stacks
 main_stack_name <- paste0(the_path_dir,'/','stack.vrt')
 sub_stacks <- list.files(the_path_dir,pattern="_stack.vrt")
 list_stack <- list()
@@ -43,11 +37,6 @@ for(stack_name in list_stack){
   stack_name <- list_stack[1]
   stack_basename <- substr(basename(stack_name),1,nchar(basename(stack_name))-4)
   
-  # print('Running BFAST this takes some time... if you are busy you can close the window and view the results later, or wait to see the results displayed when the algorithm finishes processing')
-  # print('If you close this window make sure the process runs by changing the Minimum time frame in the SEPAL user resources to at least 1 hour')
-  # print('If you have some time sit back, relax and wait for the results to finish processing.')
-  
-  # print(paste0('Running BFAST from: ', the_dir))
   output_directory <- paste0(the_path_dir,"results/")
   
   print(paste0('The results will be found in the folder: ' ,paste0(output_directory)))
@@ -113,8 +102,8 @@ for(stack_name in list_stack){
   info    <- GDALinfo(stack_name)
 
   ############# GET BRICK SIZE
-  stack_x <- dim(stack)[2]
-  stack_y <- dim(stack)[1]
+  stack_x <- as.numeric(info[2])
+  stack_y <- as.numeric(info[1])
   
   nx <- floor(stack_x / chunk_size)
   ny <- floor(stack_y / chunk_size)
