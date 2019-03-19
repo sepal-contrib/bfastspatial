@@ -61,6 +61,7 @@ for(the_dir in tiles){
     
     log_filename <- file.path(results_directory,paste0(format(Sys.time(), "%Y-%m-%d-%H-%M-%S"),"_bfast_", title, ".log"))
     start_time   <- format(Sys.time(), "%Y/%m/%d %H:%M:%S")
+    nf_start_time <- Sys.time()
     
     
     tryCatch({
@@ -213,6 +214,8 @@ for(the_dir in tiles){
                        result,
                        paste0(chunks_directory, paste0("chunk_*","_bfast_",title, ".tif"))
         ))
+        
+        print(paste0("Total time: ",Sys.time()-nf_start_time))
         
         ############# WRITE TIMING INFO TO A LOG
         write(paste0("This process started on ", start_time,

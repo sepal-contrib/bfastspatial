@@ -306,6 +306,8 @@ shinyServer(function(input, output, session) {
     req(input$time_series_dir)
     
     data_dir            <- paste0(data_dir(),"/")
+    
+
 
     historical_year_beg <- as.numeric(input$option_h_beg)
     monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
@@ -334,6 +336,15 @@ shinyServer(function(input, output, session) {
                     mode,'_',
                     chunk_size,'_',
                     historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
+    
+    
+    tiles <- input$option_tiles
+    
+    progress_file <- paste0(data_dir,"processing_",title,".txt")
+    
+    save(data_dir,progress_file,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
+         file = paste0(data_dir,"/my_work_space.RData"))
+    
     title
   })
   
@@ -397,46 +408,6 @@ shinyServer(function(input, output, session) {
                                
                                progress_file <- progress_file()
                                system(paste0('echo "Preparing data..." > ', progress_file))
-                               
-                               historical_year_beg <- as.numeric(input$option_h_beg)
-                               monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
-                               monitoring_year_end <- as.numeric(input$option_m_beg)[2]
-                               
-                               order               <- as.numeric(input$option_order)
-                               history             <- as.character(input$option_history)
-                               mode                <- as.character(input$option_sequential)
-                               type                <- as.character(input$option_type)
-                               mask                <- as.character(input$option_useMask)
-                               formula_elements    <- unlist(input$option_formula)
-                               returnLayers        <- c(as.character(input$option_returnLayers))
-                               
-                               chunk_size          <- as.numeric(input$option_chunk)
-                               
-                               type_num            <- c("OC","OM","R","M","f")[which(c("OLS-CUSUM", "OLS-MOSUM", "RE", "ME","fluctuation")==type)]
-                               mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
-                               formula             <- paste0("response ~ ",paste(formula_elements,sep = " " ,collapse = "+"))
-                               
-                               print(order)
-                               print(history)
-                               print(formula)
-                               print(type)
-                               print(returnLayers)
-                               print(chunk_size)
-                               
-                               mask_file_path <- input$mask_file_path
-                               title <- paste0("O_",order,
-                                               "_H_",paste0(history,collapse = "-"),
-                                               "_T_",type_num,
-                                               "_F_",paste0(substr(formula_elements,1,1),collapse= ""),
-                                               mask_opt,'_',
-                                               mode,'_',
-                                               chunk_size,'_',
-                                               historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
-                               
-                               tiles <- input$option_tiles
-                               
-                               save(data_dir,progress_file,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
-                                    file = paste0(data_dir,"/my_work_space.RData"))
                                
                                system(paste0("nohup Rscript www/scripts/bfast_run_chunks.R ",data_dir,' & '))
                                
