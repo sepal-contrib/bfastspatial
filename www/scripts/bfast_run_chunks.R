@@ -11,6 +11,7 @@ print(args[1])
 data_dir <- args[1]
 
 load(paste0(data_dir,"/my_work_space.RData"))
+overall_start_time <- Sys.time()
 
 for(the_dir in tiles){
   print(paste0('BFAST running for ',the_dir))
@@ -39,8 +40,9 @@ for(the_dir in tiles){
   sink(progress_file)
   
   print("Preparing data...")
-  print(paste0('The results will be found in the folder: ' ,paste0(output_directory)))
   print(paste0('Running time series analysis for: ',basename(the_path_dir)))
+  print(paste0('The results will be found in the folder: ' ,paste0(output_directory)))
+  print(paste0('Number of cores: ',detectCores()))
   
   ############### LOOP THROUGH THE DIFFERENT STACKS
   for(stack_name in list_stack){
@@ -128,11 +130,18 @@ for(the_dir in tiles){
     
     names(sizes) <- c("size_x","size_y","start_x","start_y")
     
-    ############# NAME OF OVERALL RESULT FROM THE TILE
+    print(paste0('Number of chunks to process: ',nrow(sizes)))
+    
+    ############# NAME OF RESULT FOR THE TILE
     result       <- file.path(results_directory, paste0("bfast_",title, ".tif"))
     
+    ############# IF RESULT EXISTS, SKIP
     if(!file.exists(result)){
+      
+      ############# PROCESS IF OVERALL APPROACH CHOSEN
       if(mode == "Overall"){
+        
+        ############# LOOP THROUGH CHUNKS
         for(chunk in 1:nrow(sizes)){
           
           chunk_stack_name <- paste0(chunks_directory,"tmp_chunk_",chunk,"_stack.tif") 
@@ -154,14 +163,18 @@ for(the_dir in tiles){
 
             chunk_stack      <- brick(chunk_stack_name)
             
+            ############# DELETE THE RESULT IF IT EXISTS
             system(sprintf("rm -f %s",chunk_bfast_name))
             
+            ############# GENERATE A LOG FILENAME
             chunk_log_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_params_",title, ".log")
             
-            Sys.sleep(1)
             
             ############# CREATE A FUNCTION TO IMPLEMENT BFAST
             loop_process <- function(){
+              
+              cores <- detectCores()
+              
               chunktime <- system.time(bfmSpatial(chunk_stack, 
                                                   start        = c(monitoring_year_beg[1], 1),
                                                   monend       = c(monitoring_year_end[1], 1),
@@ -172,9 +185,10 @@ for(the_dir in tiles){
                                                   filename     = chunk_bfast_name,
                                                   type         = type,
                                                   returnLayers = returnLayers,
-                                                  mc.cores     = detectCores()))
+                                                  mc.cores     = cores))
+             
               
-              ############# WRITE THE TIME TO A LOG
+             ############# WRITE THE TIME TO A LOG
               write(paste0("Chunk: ",
                            chunk,
                            " Start time: ",chunk_start_time,
@@ -182,6 +196,7 @@ for(the_dir in tiles){
                            " for a total time of ", chunktime[[3]]/60," minutes"),
                     chunk_log_filename,
                     append=TRUE)
+              
               
               chunktime
             }
@@ -194,20 +209,27 @@ for(the_dir in tiles){
               system(sprintf(paste0("rm -f ", chunks_directory,"tmp_chunk*.tif")))
               
             },error=function(e){
-              print(paste0("Still processing chunk ",chunk))
+              print(paste0("Failed chunk ",chunk))
               
               fail_log_filename <- paste0(chunks_directory,"fail_chunk_",chunk,"_params_",title, ".log")
               
               write(paste0("Failed Chunk: ", 
                            chunk,
                            " Start time: ",chunk_start_time,
-                           " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
+                           " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
+                           " Reason for failure ",
+                           e),
                     fail_log_filename, 
                     append=TRUE)
              })
             
-            }# END OF TEST EXISTS CHUNK
-        }# END OF THE CHUNK LOOP
+            } ### END OF TEST EXISTS CHUNK
+          
+          print(paste0("Finished chunk ",chunk))
+          print(paste0(chunktime[[3]]/60," minutes"))
+          
+          
+        } ### END OF THE CHUNK LOOP
         
         ############# COMBINE ALL THE CHUNKS
         system(sprintf("gdal_merge.py -co COMPRESS=LZW -o %s %s",
@@ -215,11 +237,14 @@ for(the_dir in tiles){
                        paste0(chunks_directory, paste0("chunk_*","_bfast_",title, ".tif"))
         ))
         
-        print(paste0("Total time: ",Sys.time()-nf_start_time))
+        total_time <- Sys.time()-nf_start_time
+        
+        print(total_time)
         
         ############# WRITE TIMING INFO TO A LOG
         write(paste0("This process started on ", start_time,
                      " and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
+                     " Total time for the tile: ",total_time ,
                      " Number of CPUs: ",detectCores(),
                      " Number of chunks: ",nrow(sizes)),
               log_filename, 
@@ -290,14 +315,15 @@ for(the_dir in tiles){
                        paste0(results_directory,"tmp_bfast_",title,'_threshold.tif'),
                        paste0(results_directory,"tmp_colortable.tif")
         ))
+        
+        ################################################################################
         ## Compress final result
         system(sprintf("gdal_translate -ot byte -co COMPRESS=LZW %s %s",
                        paste0(results_directory,"tmp_colortable.tif"),
                        outputfile
         ))
-        ## Clean all
-        ####################  CREATE A VRT OUTPUT
         
+        ####################  CREATE A VRT OUTPUT
         system(sprintf("gdalbuildvrt %s %s",
                        paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
                        paste0(data_dir,
@@ -309,14 +335,16 @@ for(the_dir in tiles){
         system(sprintf(paste0("rm -f ",results_directory,"tmp*.tif")))
         system(sprintf(paste0("rm -f ", chunks_directory,"tmp*.tif")))
         
-      }else{##End of OVERALL loop and Beginning of SEQUENTIAL loop
+      }else{  #################### End of OVERALL loop and Beginning of SEQUENTIAL loop
         
         bfmSpatialSq <- function(start, end, timeStack, ...){
           lapply(start:end,
                  function(year){
                    
+                   ############# LOOP THROUGH CHUNKS
                    outfl <- paste0(results_directory,"bfast_",title,"_year",year,'.tif')
                    
+                   ############# LOOP THROUGH CHUNKS
                    for(chunk in 1:nrow(sizes)){
                      
                      chunk_stack_year_name <- paste0(chunks_directory,"tmp_chunk_",chunk,"_year",year,"_stack.tif") 
@@ -325,7 +353,7 @@ for(the_dir in tiles){
                      if(!file.exists(chunk_bfast_year_name)){
                        chunk_start_time   <- format(Sys.time(), "%Y/%m/%d %H:%M:%S")
                        
-                       
+                       ############# CLIP THE STACK TO THE CHUNK EXTENT
                        system(sprintf("gdal_translate -srcwin %s %s %s %s %s %s",
                                       sizes[chunk,"start_x"],
                                       sizes[chunk,"start_y"],
@@ -339,9 +367,9 @@ for(the_dir in tiles){
                        print(paste0("Processing : ",ceiling(chunk/nrow(sizes))*100,"%"," for year:  ",year))
                        system(sprintf("rm -f %s",chunk_bfast_year_name))
                        
-                       Sys.sleep(1)
-                       
                        chunk_log_year_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_year_",year,"_params_",title, ".log")
+                       
+                       cores <- detectCores()
                        
                        loop_process <- function(){bfm_year <- bfmSpatial(chunk_stack_year, 
                                                                          start    = c(year, 1), 
@@ -352,15 +380,16 @@ for(the_dir in tiles){
                                                                          history  = history,
                                                                          filename = chunk_bfast_year_name,
                                                                          type     = type,
-                                                                         mc.cores = detectCores())
+                                                                         mc.cores = cores)
                        
-                       # write(paste0("Chunk: ", 
-                       #              chunk,
-                       #              " Start time: ",chunk_start_time,
-                       #              " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                       #              " for a total time of ", chunktime[[3]]/60," minutes"),
-                       #       chunk_log_year_filename, 
-                       #       append=TRUE)
+                       ############# WRITE THE TIME TO A LOG
+                       write(paste0("Chunk: ",
+                                    chunk,
+                                    " Start time: ",chunk_start_time,
+                                    " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
+                                    " for a total time of ", chunktime[[3]]/60," minutes"),
+                             chunk_log_year_filename,
+                             append=TRUE)
                        
                        system(sprintf(paste0("rm -f ", chunks_directory,"tmp_chunk*.tif")))
                        
@@ -410,8 +439,7 @@ for(the_dir in tiles){
             monitoring_year_end,
             stack_name
           ))
-        
-        
+
         
         ## Post-processing ####
         # output the maximum of the breakpoint dates for all sequential outputs
@@ -445,17 +473,23 @@ for(the_dir in tiles){
                      time[[3]]/60," minutes"), 
               log_filename, append=TRUE)
         
-      } ##End of SEQUENTIAL loop
+      } ## End of SEQUENTIAL loop
       
-    } ##End of STACKNAME loop
-    
-    print(paste0('The result is ',basename(result)))
-    print('Done processing. Click on DISPLAY THE RESULTS')
+    } ### End of STACKNAME loop
 
-    sink()
   } ### End of DATA AVAILABLE loop
   
+  print(paste0('The result is ',basename(result)))
+  
+  overall_time <- Sys.time() - overall_start_time
+  print(overall_time)
+  
+  print('Done with processing. You can display results')
+  
+  sink()
   
 } ### END OF TILE LOOP
+
+
 
 
