@@ -15,7 +15,7 @@
 ####################################################################################
 
 ####################################################################################
-## Last update: 2018/04/16
+## Last update: 2019/03/21
 ## bfast / ui
 ####################################################################################
 
@@ -157,15 +157,10 @@ shinyUI(
                       textOutput("outdirpath"),
                       uiOutput("ui_tiles"),
                       br(),
-                      # checkboxInput("checkbox_useMask",label=textOutput('checkbox_usemask')),
-                      # br(),
-                      uiOutput("ui_option_useMask"),
+                     uiOutput("ui_option_useMask"),
                       br(),
+                      uiOutput("ui_button_mask")
                       
-                      shinyFilesButton(id = 'mask_file',
-                                       label = "Mask file",  
-                                       title = "Browse",
-                                       multiple=F)
                   ),
                   
                   ####################################################################################
@@ -194,16 +189,15 @@ shinyUI(
                   # New box
                   box(title=textOutput('title_result'),width=12,status = "success", solidHeader= TRUE,
                       uiOutput("StartButton"),
-                      #dataTableOutput("show_table"),
+                      
                       verbatimTextOutput("print_PROGRESS"),
                       uiOutput("list_thres"),
                       
                       uiOutput("DisplayButtonCurrent"),
                       uiOutput("DisplayButtonAvailable"),
                       
-                      # withSpinner(
-                        leafletOutput("display_res")
-                      # )
+                      leafletOutput("display_res")
+                      
                   ,
                       uiOutput("message")
                   )

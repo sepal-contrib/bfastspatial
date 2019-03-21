@@ -15,7 +15,7 @@
 ####################################################################################
 
 ####################################################################################
-## Last update: 2018/01/18
+## Last update: 2019/03/21
 ## bfast / server # branch for tiling internal
 ####################################################################################
 
@@ -118,6 +118,18 @@ shinyServer(function(input, output, session) {
   )
   
   
+  ##################################################################################################################################
+  ############### CREATE A BUTTON THAT SHOWS ONLY IF OPTION SELECTED
+  output$ui_button_mask <- renderUI({
+    req(input$time_series_dir)
+    req(input$option_useMask == "FNF Mask")
+    
+    shinyFilesButton(id = 'mask_file',
+                     label = "Mask file",  
+                     title = "Browse",
+                     multiple=F)
+  })
+  
   
   ################################# Data file path
   data_dir <- reactive({
@@ -126,10 +138,13 @@ shinyServer(function(input, output, session) {
     df <- parseDirPath(volumes, input$time_series_dir)
   })
   
+  
   ################################# Display tiles inside the DATA_DIR
   output$outdirpath = renderPrint({
-    basename(list.dirs(data_dir(),recursive = F))
+    req(input$time_series_dir)
+    paste0("File: ",data_dir()," Tile: ",basename(list.dirs(data_dir(),recursive = F)))
   })
+  
   
   ################################# Output directory path
   mask_file_path <- reactive({
@@ -163,29 +178,9 @@ shinyServer(function(input, output, session) {
     max(list_year())
   })
   
-  # #################################################################################################################################
-  # ############## Option buttons --> KEEP IF ARCHIVE READING IS NOT OPTIMAL
-  # output$ui_option_h_beg <- renderUI({
-  #   req(input$time_series_dir)
-  #   selectInput(inputId = 'option_h_beg',
-  #               label = "Historical year beginning",
-  #               choices = 2000:2020,
-  #               selected = as.numeric(beg_year())
-  #               )
-  # })
-  # 
-  # output$ui_option_m_end <- renderUI({
-  #   req(input$time_series_dir)
-  #   selectInput(inputId = 'option_m_end',
-  #               label = "Monitoring year end",
-  #               choices = as.numeric(input$option_h_beg):2020,
-  #               selected = as.numeric(end_year())
-  #   )
-  # })
   
   ################################# Take the average date for the beginning and end of historical period
   output$ui_option_h_beg <- renderUI({
-    # validate(need(beg_year()!=end_year(), "Need data from multiple years"))
     req(input$time_series_dir)
     
     sliderInput(inputId = 'option_h_beg',
@@ -196,12 +191,12 @@ shinyServer(function(input, output, session) {
                 sep = ""
     )
   })
+  
   ################################# Take the average date for the beginning and end of monitoring period
   output$ui_option_m_beg <- renderUI({
     validate(need(input$time_series_dir, "Missing input: Please select time series folder"))
     req(input$option_h_beg)
     
-    # validate(need(beg_year()!=end_year(), "Need data from multiple years"))
     req(input$time_series_dir)
     sliderInput(inputId = 'option_m_beg',
                 label = textOutput("text_option_m_date_break"),
@@ -213,7 +208,7 @@ shinyServer(function(input, output, session) {
   })
   
   
-  
+  ################################# OPTION ORDER
   output$ui_option_order <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = 'option_order',
@@ -223,6 +218,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
+  ################################# OPTION HISTORY
   output$ui_option_history <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = 'option_history',
@@ -232,7 +228,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
-  
+  ################################# OPTION TYPE
   output$ui_option_type <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = 'option_type',
@@ -242,6 +238,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
+  ################################# OPTION FORMULA
   output$ui_option_formula <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = 'option_formula',
@@ -251,6 +248,8 @@ shinyServer(function(input, output, session) {
                 selected = "harmon"
     )
   })
+  
+  ################################# OPTION LAYERS
   output$ui_option_returnLayers <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = 'option_returnLayers',
@@ -261,6 +260,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
+  ################################# OPTION MODE
   output$ui_option_sequential <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "option_sequential",
@@ -270,6 +270,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
+  ################################# OPTION MASK
   output$ui_option_useMask <- renderUI({
     req(input$time_series_dir)
     # req(input$mask_file)
@@ -280,6 +281,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
+  ################################# OPTION TILES
   output$ui_tiles <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "option_tiles",
@@ -290,6 +292,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
+  ################################# OPTION CHUNK SIZE
   output$ui_option_chunk <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "option_chunk",
@@ -307,8 +310,6 @@ shinyServer(function(input, output, session) {
     
     data_dir            <- paste0(data_dir(),"/")
     
-
-
     historical_year_beg <- as.numeric(input$option_h_beg)
     monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
     monitoring_year_end <- as.numeric(input$option_m_beg)[2]
@@ -326,7 +327,7 @@ shinyServer(function(input, output, session) {
     type_num            <- c("OC","OM","R","M","f")[which(c("OLS-CUSUM", "OLS-MOSUM", "RE", "ME","fluctuation")==type)]
     mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
     formula             <- paste0("response ~ ",paste(formula_elements,sep = " " ,collapse = "+"))
-
+    
     mask_file_path <- input$mask_file_path
     title <- paste0("O_",order,
                     "_H_",paste0(history,collapse = "-"),
@@ -368,7 +369,7 @@ shinyServer(function(input, output, session) {
     validate(need(input$option_tiles, "Missing input: Please select at least one folder to process"))
     validate(need(input$option_formula, "Missing input: Please select at least one element in the formula"))
     validate(need(input$option_returnLayers, "Missing input: Please select at least one layer to export"))
-
+    
     actionButton('bfastDisplayButton_c', textOutput('display_button_c'))
   })
   
@@ -376,6 +377,7 @@ shinyServer(function(input, output, session) {
   ############### Insert the display button
   output$DisplayButtonAvailable <- renderUI({
     req(input$time_series_dir)
+    req(input$results_thres)
     actionButton('bfastDisplayButton_a', textOutput('display_button_a'))
   })
   
@@ -385,7 +387,7 @@ shinyServer(function(input, output, session) {
     req(input$time_series_dir)
     req(parameters())
     paste0(data_dir(),"/","processing_",parameters(),".txt")
-    })
+  })
   
   
   ##################################################################################################################################
@@ -395,7 +397,7 @@ shinyServer(function(input, output, session) {
   mode <- reactive({
     req(input$time_series_dir)
     as.character(input$option_sequential)
-    })
+  })
   
   ##################################################################################################################################
   ############### Run BFAST
@@ -404,16 +406,15 @@ shinyServer(function(input, output, session) {
                                req(input$time_series_dir)
                                req(input$bfastStartButton)
                                
-                               data_dir            <- paste0(data_dir(),"/")
+                               data_dir      <- paste0(data_dir(),"/")
                                
                                progress_file <- progress_file()
+                               
                                system(paste0('echo "Preparing data..." > ', progress_file))
                                
                                system(paste0("nohup Rscript www/scripts/bfast_run_chunks.R ",data_dir,' & '))
                                
                                print("done")
-                               
-                              
                              })
   
   #############################################################
@@ -421,7 +422,7 @@ shinyServer(function(input, output, session) {
   output$print_PROGRESS = renderText({
     invalidateLater(1000)
     req(bfast_res())
-
+    
     progress_file <- progress_file()
     
     if(file.exists(progress_file)){
@@ -432,7 +433,7 @@ shinyServer(function(input, output, session) {
     }
     else{
       invalidateLater(2001)
-      }
+    }
     
   })
   
@@ -443,6 +444,7 @@ shinyServer(function(input, output, session) {
     list.files(path= data_dir(), pattern = "_threshold.vrt$", recursive = TRUE)
   })
   
+  ################################# LIST OF AVAILABLE RESULTS
   output$list_thres <- renderUI({
     req(input$time_series_dir)
     selectInput(inputId = "results_thres",
@@ -453,38 +455,34 @@ shinyServer(function(input, output, session) {
     )
   })
   
-
-  
+  ################################# DISPLAY AVAILABLE  RESULTS BUTTON
   observeEvent(input$bfastDisplayButton_a, {
     req(input$time_series_dir)
-    
-    dis_result$a<- paste0(data_dir(),'/',input$results_thres)
+    dis_result$a <- paste0(data_dir(),'/',input$results_thres)
   })
   
+  
+  ################################# DISPLAY THIS SESSION RESULTS BUTTON
   observeEvent(input$bfastDisplayButton_c, {
     req(bfast_res())
     req(input$time_series_dir)
     
     data_dir <- data_dir()
     load(paste0(data_dir(),"/my_work_space.RData"))
-    if(mode == "Overall"){    dis_result$a <- paste0(data_dir,"/bfast_",title,"_threshold.vrt")}
+    if(mode == "Overall"){       dis_result$a <- paste0(data_dir,"/bfast_",title,"_threshold.vrt")}
     if(mode == "Sequential"){    dis_result$a <- NULL}
     
   })
   
   ############### Display the results as map
-  ## render the map
   output$display_res  <-  renderLeaflet({
     print('Check: Display the map')
-    # req(bfast_res())
-    # req(vrtout())
     if (is.null(dis_result$a)) return()
     
     print(dis_result$a)
-    r<- raster(dis_result$a)
     
-    ## this is a so far failed attempt to add labels to the legend :( 
-    rf <- as.factor(r)
+    ############### READ THE RESULT AS RASTER-FACTOR
+    rf <- as.factor(raster(dis_result$a))
     
     print(rf)
     print(levels(rf))
@@ -534,10 +532,10 @@ shinyServer(function(input, output, session) {
   ############### Processing time as reactive
   process_time <- reactive({
     req(bfast_res())
-# 
-#     log_filename <- list.files(data_dir(),pattern="log",recursive = T)[1]
-#     print(paste0(data_dir(),"/",log_filename))
-#     readLines(paste0(data_dir(),"/",log_filename))
+    # 
+    #     log_filename <- list.files(data_dir(),pattern="log",recursive = T)[1]
+    #     print(paste0(data_dir(),"/",log_filename))
+    #     readLines(paste0(data_dir(),"/",log_filename))
   })
   
   ##################################################################################################################################
