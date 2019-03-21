@@ -17,7 +17,7 @@ overall_start_time <- Sys.time()
 for(the_dir in tiles){
   print(paste0('BFAST running for ',the_dir))
   
- 
+  
   ############### # check if the processing text exists, create a new blank processing text file
   the_path_dir <- paste0(data_dir, the_dir, '/')
   the_path_dir
@@ -130,10 +130,13 @@ for(the_dir in tiles){
     nx <- floor(stack_x / chunk_size)
     ny <- floor(stack_y / chunk_size)
     
-    sizes_x <- c(rep(chunk_size,nx),stack_x - nx*chunk_size)
-    sizes_y <- c(rep(chunk_size,ny),stack_y - ny*chunk_size)
+    res_x <- stack_x - nx*chunk_size
+    res_y <- stack_y - ny*chunk_size
     
+    sizes_x <- c(rep(chunk_size,nx),res_x)
     start_x <- cumsum(c(0,rep(chunk_size,nx)))
+    
+    sizes_y <- c(rep(chunk_size,ny),res_y)
     start_y <- cumsum(c(0,rep(chunk_size,ny)))
     
     ############# CALCULATE CHUNKS SIZES
@@ -141,6 +144,9 @@ for(the_dir in tiles){
                      expand.grid(start_x,start_y))
     
     names(sizes) <- c("size_x","size_y","start_x","start_y")
+    
+    ############# ELIMINATE CHUNKS WITH ZERO VALUES (HAPPENS IF CHUNK_SIZE IS A MULTIPLE OF ORIGINAL SIZE)
+    sizes <- sizes[sizes$size_x > 0 & sizes$size_y >0,]
     
     print(paste0('  Number of chunks to process: ',nrow(sizes)))
     
@@ -172,7 +178,7 @@ for(the_dir in tiles){
                            sizes[chunk,"size_y"],
                            stack_name,
                            chunk_stack_name))
-
+            
             chunk_stack      <- brick(chunk_stack_name)
             
             ############# DELETE THE RESULT IF IT EXISTS
@@ -198,9 +204,9 @@ for(the_dir in tiles){
                                                   type         = type,
                                                   returnLayers = returnLayers,
                                                   mc.cores     = cores))
-             
               
-             ############# WRITE THE TIME TO A LOG
+              
+              ############# WRITE THE TIME TO A LOG
               write(paste0("Chunk: ",
                            chunk,
                            " Start time: ",chunk_start_time,
@@ -233,9 +239,9 @@ for(the_dir in tiles){
                            e),
                     fail_log_filename, 
                     append=TRUE)
-             })
+            })
             
-            } ### END OF TEST EXISTS CHUNK
+          } ### END OF TEST EXISTS CHUNK
           
           print(paste0("    Finished chunk ",chunk))
           
@@ -398,9 +404,9 @@ for(the_dir in tiles){
                                     chunk,
                                     " Start time: ",chunk_start_time,
                                     " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")
-                                    ),
-                             chunk_log_year_filename,
-                             append=TRUE)
+                       ),
+                       chunk_log_year_filename,
+                       append=TRUE)
                        
                        bfm_year
                        
@@ -415,21 +421,21 @@ for(the_dir in tiles){
                          
                        },error=function(e){
                          print(paste0("      Failed process on chunk ",chunk))
-
+                         
                          fail_log_year_filename <- paste0(chunks_directory,"fail_chunk_",chunk,"_year_",year,"_params_",title, ".log")
-
+                         
                          write(paste0("Failed Chunk: ",
                                       chunk,
                                       " Start time: ",chunk_start_time,
                                       " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
                                fail_log_year_filename,
                                append=TRUE)
-                         })
+                       })
                        
                      } ### END OF CHUNK EXISTS
                      
                    } ### END OF THE CHUNK LOOP
-
+                   
                    ############# COMBINE ALL THE CHUNKS
                    system(sprintf("gdal_merge.py -co COMPRESS=LZW -o %s %s",
                                   outfl,
@@ -450,7 +456,7 @@ for(the_dir in tiles){
             monitoring_year_end,
             stack_name
           ))
-
+        
         
         ## Post-processing ####
         # output the maximum of the breakpoint dates for all sequential outputs
@@ -487,7 +493,7 @@ for(the_dir in tiles){
       } ## End of SEQUENTIAL loop
       
     } ### End of STACKNAME loop
-
+    
   } ### End of DATA AVAILABLE loop
   
   print(paste0('The result is ',basename(result)))
