@@ -13,6 +13,8 @@ data_dir <- args[1]
 load(paste0(data_dir,"/my_work_space.RData"))
 overall_start_time <- Sys.time()
 
+cores <- detectCores()
+
 ############### LOOP THROUGH EACH TILE
 for(the_dir in tiles){
   print(paste0('BFAST running for ',the_dir))
@@ -49,7 +51,7 @@ for(the_dir in tiles){
   ############### Write the console outputs 
   print(paste0('The results will be found in the folder: ' ,paste0(output_directory)))
   print(paste0('Number of GEE blocks: ',length(sub_stacks)))
-  print(paste0('Number of cores: ',detectCores()))
+  print(paste0('Number of cores: ',cores))
   
   ############### LOOP THROUGH THE DIFFERENT STACKS
   for(stack_name in list_stack){
@@ -166,7 +168,7 @@ for(the_dir in tiles){
           chunk_bfast_name <- paste0(chunks_directory,"chunk_",chunk,"_bfast_",title, ".tif")
           
           if(!file.exists(chunk_bfast_name)){
-            chunk_start_time   <- format(Sys.time(), "%Y/%m/%d %H:%M:%S")
+            chunk_start_time   <- Sys.time()
             
             print(paste0("    Processed : ",ceiling((chunk-1)/nrow(sizes)*100),"%"))
             
@@ -187,11 +189,19 @@ for(the_dir in tiles){
             ############# GENERATE A LOG FILENAME
             chunk_log_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_params_",title, ".log")
             
+            trans_time <- difftime(Sys.time(), chunk_start_time, units='mins')
+            
+            write(paste(paste0("Chunk:",'\t',chunk),
+                        paste0("Start time:",'\t',chunk_start_time),
+                        paste0("Clip time:",'\t',trans_time),
+                        sep='\n'),
+                  chunk_log_filename,
+                  append=TRUE)
+            
             
             ############# CREATE A FUNCTION TO IMPLEMENT BFAST
             loop_process <- function(){
-              
-              cores <- detectCores()
+
               
               chunktime <- system.time(bfmSpatial(chunk_stack, 
                                                   start        = c(monitoring_year_beg[1], 1),
@@ -205,17 +215,33 @@ for(the_dir in tiles){
                                                   returnLayers = returnLayers,
                                                   mc.cores     = cores))
               
+              ############# WRITE SUCCESS TO A LOG
+              difftime <- difftime(Sys.time(), chunk_start_time, units='mins')
               
-              ############# WRITE THE TIME TO A LOG
-              write(paste0("Chunk: ",
-                           chunk,
-                           " Start time: ",chunk_start_time,
-                           " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                           " for a total time of ", chunktime[[3]]/60," minutes"),
+              write(paste(paste0("End time:",'\t',format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
+                          paste0("Bfast time:",'\t',chunktime[[3]]/60),
+                          paste0("Total time:",'\t',difftime),
+                          paste0("Dates:",'\t',length(dates)),
+                          paste0("Size x:",'\t',sizes[chunk,"size_x"]),
+                          paste0("Size y:",'\t',sizes[chunk,"size_y"])
+                          ,sep="\n"),
                     chunk_log_filename,
                     append=TRUE)
               
-              
+              ############# WRITE PERFORMANCE PARAMETERS
+              write(paste(basename(data_dir),
+                          title,
+                          cores,
+                          length(dates),
+                          sizes[chunk,"size_x",],
+                          sizes[chunk,"size_y"],
+                          difftime,
+                          as.numeric(difftime)/as.numeric(sizes[chunk,"size_x",])/as.numeric(sizes[chunk,"size_y"])/length(dates)*1000*60,
+                          sep="\t"),
+                    paste0(data_dir,"performance.txt"),
+                    append=TRUE)
+
+              ############# WRITE PERFORMANCE PARAMETERS
               chunktime
             }
             
@@ -224,6 +250,8 @@ for(the_dir in tiles){
               
               loop_process()
               
+              
+              ############# CLEAN TMP CHUNK
               system(sprintf(paste0("rm -f ", chunks_directory,"tmp_chunk*.tif")))
               
             },error=function(e){
@@ -231,6 +259,7 @@ for(the_dir in tiles){
               
               fail_log_filename <- paste0(chunks_directory,"fail_chunk_",chunk,"_params_",title, ".log")
               
+              ############# WRITE FAIL TO A LOG
               write(paste0("Failed Chunk: ", 
                            chunk,
                            " Start time: ",chunk_start_time,
@@ -254,16 +283,17 @@ for(the_dir in tiles){
                        paste0(chunks_directory, paste0("chunk_*","_bfast_",title, ".tif"))
         ))
         
-        total_time <- Sys.time()-nf_start_time
+        total_time <- difftime(Sys.time(), nf_start_time, units='mins')
         
         print(total_time)
         
         ############# WRITE TIMING INFO TO A LOG
-        write(paste0("This process started on ", start_time,
-                     " and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                     " Total time for the tile: ",total_time ,
-                     " Number of CPUs: ",detectCores(),
-                     " Number of chunks: ",nrow(sizes)),
+        write(paste(paste0("Process started:",'\t',start_time),
+                    paste0("Process ended:",'\t',format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
+                    paste0("Total time:",'\t',total_time) ,
+                    paste0("Number of CPUs:",'\t',cores),
+                    paste0("Number of chunks:",'\t',nrow(sizes)),
+                    sep="\n"),
               log_filename, 
               append=TRUE)
         
@@ -354,7 +384,7 @@ for(the_dir in tiles){
         
       }else{  #################### End of OVERALL loop and Beginning of SEQUENTIAL loop
         
-        cores <- detectCores()
+      
         
         bfmSpatialSq <- function(start, end, timeStack, ...){
           lapply(start:end,
@@ -386,7 +416,18 @@ for(the_dir in tiles){
                        print(paste0("    Processing year:  ",year))
                        system(sprintf("rm -f %s",chunk_bfast_year_name))
                        
+                       ############# GENERATE A LOG FILENAME
+                       
                        chunk_log_year_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_year_",year,"_params_",title, ".log")
+                       
+                       trans_time <- difftime(Sys.time(), chunk_start_time, units='mins')
+                       
+                       write(paste(paste0("Chunk:",'\t',chunk),
+                                   paste0("Start time:",'\t',chunk_start_time),
+                                   paste0("Clip time:",'\t',trans_time),
+                                   sep='\n'),
+                             chunk_log_year_filename,
+                             append=TRUE)
                        
                        loop_process <- function(){bfm_year <- bfmSpatial(chunk_stack_year, 
                                                                          start    = c(year, 1), 
@@ -399,15 +440,6 @@ for(the_dir in tiles){
                                                                          type     = type,
                                                                          mc.cores = cores)
                        
-                       ############# WRITE THE TIME TO A LOG
-                       write(paste0("Chunk: ",
-                                    chunk,
-                                    " Start time: ",chunk_start_time,
-                                    " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")
-                       ),
-                       chunk_log_year_filename,
-                       append=TRUE)
-                       
                        bfm_year
                        
                        }
@@ -417,6 +449,17 @@ for(the_dir in tiles){
                          
                          loop_process()
                          
+                         ############# WRITE SUCCESS TO A LOG
+                         write(paste(paste0("End time:",'\t',format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
+                                     paste0("Total time:",'\t',difftime(Sys.time(), chunk_start_time, units='mins')),
+                                     paste0("Dates:",'\t',length(dates)),
+                                     paste0("Size x:",'\t',sizes[chunk,"size_x"]),
+                                     paste0("Size y:",'\t',sizes[chunk,"size_y"])
+                                     ,sep="\n"),
+                               chunk_log_year_filename,
+                               append=TRUE)
+                         
+                         ############# CLEAN TMP CHUNK
                          system(sprintf(paste0("rm -f ", chunks_directory,"tmp_chunk*.tif")))
                          
                        },error=function(e){
@@ -424,6 +467,7 @@ for(the_dir in tiles){
                          
                          fail_log_year_filename <- paste0(chunks_directory,"fail_chunk_",chunk,"_year_",year,"_params_",title, ".log")
                          
+                         ############# WRITE FAIL TO A LOG
                          write(paste0("Failed Chunk: ",
                                       chunk,
                                       " Start time: ",chunk_start_time,
@@ -432,7 +476,23 @@ for(the_dir in tiles){
                                append=TRUE)
                        })
                        
+                       
+                       difftime <- difftime(Sys.time(), chunk_start_time, units='mins')
+                       
+                       write(paste(basename(data_dir),
+                                   title,
+                                   cores,
+                                   length(dates),
+                                   sizes[chunk,"size_x",],
+                                   sizes[chunk,"size_y"],
+                                   difftime,
+                                   as.numeric(difftime)/as.numeric(sizes[chunk,"size_x",])/as.numeric(sizes[chunk,"size_y"])/length(dates)*1000*60,
+                                   sep="\t"),
+                             paste0(data_dir,"performance.txt"),
+                             append=TRUE)
+                       
                      } ### END OF CHUNK EXISTS
+
                      
                    } ### END OF THE CHUNK LOOP
                    
