@@ -138,9 +138,9 @@ for(the_dir in tiles){
     ny <- floor(stack_y / chunk_size)
     
     if (nx == 0 || ny == 0) {
-      chunk_size <- cores / 2
-      nx <- floor(stack_x / chunk_size)
-      ny <- floor(stack_y / chunk_size)
+#      chunk_size <- 1
+      nx <- 1
+      ny <- 1
     }
     
     #res_x <- stack_x - nx*chunk_size
