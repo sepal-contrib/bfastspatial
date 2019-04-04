@@ -32,7 +32,7 @@ for(the_dir in tiles){
   
   
   ############### Get the list of stacks inside the tile
-  main_stack_name <- paste0(the_path_dir,'/','stack.vrt')
+  main_stack_name <- paste0(the_path_dir,'stack.vrt')
   sub_stacks <- list.files(the_path_dir,pattern="_stack.vrt")
   list_stack <- list()
   
@@ -44,7 +44,7 @@ for(the_dir in tiles){
   
   
   ################# CREATE THE MAIN OUTPUT DIRECTORY
-  output_directory <- paste0(the_path_dir,"results/")
+  output_directory <- paste0(the_path_dir,"results")
   dir.create(output_directory, recursive = T,showWarnings = F)
   
   
@@ -66,7 +66,7 @@ for(the_dir in tiles){
     
     ################# CREATE LOCAL STACK RESULTS DIRECTORY
     results_directory <- file.path(output_directory,paste0("bfast_",
-                                                           stack_basename,"_",title,'/'))
+                                                           stack_basename,"_",title,"/"))
     dir.create(results_directory,recursive = T,showWarnings = F)
     
     chunks_directory <- file.path(results_directory,paste0("chunks",'/'))
@@ -121,7 +121,6 @@ for(the_dir in tiles){
       }
     }, error=function(e){})
     
-    
     ############# READ THE STACK METADATA WITHOUT WARNINGS
     info    <- GDALinfo(stack_name,silent = TRUE)
     
@@ -129,26 +128,58 @@ for(the_dir in tiles){
     stack_x <- as.numeric(info[2])
     stack_y <- as.numeric(info[1])
     
+    orig_x <- as.numeric(info[4])
+    orig_y <- as.numeric(info[5])
+    
+    res_x <- as.numeric(info[6])
+    res_y <- as.numeric(info[7])
+    
     nx <- floor(stack_x / chunk_size)
     ny <- floor(stack_y / chunk_size)
     
-    res_x <- stack_x - nx*chunk_size
-    res_y <- stack_y - ny*chunk_size
+    if (nx == 0 || ny == 0) {
+      chunk_size <- cores / 2
+      nx <- floor(stack_x / chunk_size)
+      ny <- floor(stack_y / chunk_size)
+    }
+    
+    #res_x <- stack_x - nx*chunk_size
+    #res_y <- stack_y - ny*chunk_size
     
     sizes_x <- c(rep(chunk_size,nx),res_x)
     start_x <- cumsum(c(0,rep(chunk_size,nx)))
     
+    xmin <- orig_x + cumsum(c(0,rep(chunk_size,nx)*res_x))
+    
     sizes_y <- c(rep(chunk_size,ny),res_y)
     start_y <- cumsum(c(0,rep(chunk_size,ny)))
     
-    ############# CALCULATE CHUNKS SIZES
-    sizes   <- cbind(expand.grid(sizes_x,sizes_y),
-                     expand.grid(start_x,start_y))
+    ymin <- orig_y + cumsum(c(0,rep(chunk_size,ny)*res_y))
     
-    names(sizes) <- c("size_x","size_y","start_x","start_y")
+    stack_proj <- info[12]
+    
+    
+    ############# CALCULATE CHUNKS SIZES
+    #    sizes   <- cbind(expand.grid(sizes_x,sizes_y),
+    #                     expand.grid(start_x,start_y))
+    sizes <- data.frame(xmin=numeric(),
+                        ymin=numeric(),
+                        xmax=numeric(),
+                        ymax=numeric()
+    )
+    
+    for (k in 1:nx){
+      for (i in 1:ny){ 
+        cc <- c(xmin[i],ymin[k],xmin[i+1],ymin[k+1])
+        sizes <- rbind(sizes, cc)
+      }
+    }
+    
+    sizes <- na.omit(sizes)  
+    names(sizes) <- c("xmin","ymin","xmax","ymax")
     
     ############# ELIMINATE CHUNKS WITH ZERO VALUES (HAPPENS IF CHUNK_SIZE IS A MULTIPLE OF ORIGINAL SIZE)
-    sizes <- sizes[sizes$size_x > 0 & sizes$size_y >0,]
+    #sizes <- sizes[sizes$size_x > 0 & sizes$size_y >0,]
     
     print(paste0('  Number of chunks to process: ',nrow(sizes)))
     
@@ -161,27 +192,67 @@ for(the_dir in tiles){
       ############# PROCESS IF OVERALL APPROACH CHOSEN
       if(mode == "Overall"){
         
+        ############# MAYBE YOU DO NOT NEED TO RUN THIS IN A LOOP??
         ############# LOOP THROUGH CHUNKS
-        for(chunk in 1:nrow(sizes)){
+        #for(chunk in 1:nrow(sizes)){
+        
+        #  chunk_stack_name <- paste0(chunks_directory,"tmp_chunk_",chunk,"_stack.tif") 
+        #  chunk_bfast_name <- paste0(chunks_directory,"chunk_",chunk,"_bfast_",title, ".tif")
+        
+        #  if(!file.exists(chunk_bfast_name)){
+        #    chunk_start_time   <- Sys.time()
+        
+        #    print(paste0("    Processed : ",ceiling((chunk-1)/nrow(sizes)*100),"%"))
+        
+        ############# FUNCTION TO CHUNK...CHUNKERIZER.
+        print(paste0('Running Chunkerizer for: ',stack_name))
+        chunkerize <- function(infile, outfile, xmin, ymin, xmax, ymax) {
+          library(gdalUtils)
+          gdalwarp(srcfile=infile, dstfile=outfile,
+                   t_srs='+proj=longlat +datum=WGS84 +no_defs',
+                   te=c(xmin, ymin, xmax, ymax), multi=TRUE, 
+                   output_Raster=TRUE)
+        }
+        
+        ############# CREATE THE CHUNK
+        library(parallel)
+        
+        cl <- makeCluster(cores) # e.g. use all cores
+        clusterExport(cl, varlist=c('sizes', "stack_name", "chunks_directory", "chunk_size", "chunkerize"), envir=environment())
+        
+        system.time({
+          #splitRaster(raster(stack_name), nx = chunk_size, ny = chunk_size, buffer = c(0,0), path = chunks_directory, cl, rType = "FLT4S")
+          parLapplyLB(cl, seq_len(nrow(sizes)), function(i) {
+            chunkerize(stack_name, paste0(chunks_directory,"tmp_chunk_",i,"_stack.tif"), sizes$xmin[i], sizes$ymin[i], sizes$xmax[i], sizes$ymax[i])  
+          })
+        })
+        stopCluster(cl)
+        
+        #      system(sprintf("gdal_translate -srcwin %s %s %s %s -co COMPRESS=LZW %s %s",
+        #                     sizes[chunk,"start_x"],
+        #                     sizes[chunk,"start_y"],
+        #                     sizes[chunk,"size_x"],
+        #                     sizes[chunk,"size_y"],
+        #                     stack_name,
+        #                     chunk_stack_name))
+        
+        #print(paste0('Finished Chunkerizer..making Brick for: ',chunk_stack_name))
+        print(paste0('Getting chunk names from: ', chunks_directory))
+        #files <- list.files(chunks_directory, pattern="*.tif", full.names=TRUE, recursive=FALSE)
+        
+        
+        file.names <- dir(chunks_directory, pattern =".tif")
+        
+        for(chunk in 1:length(file.names)){
+          print(paste0('Making Brick for: ',file.names[chunk]))
+          chunk_stack      <- brick(paste0(chunks_directory, file.names[chunk]))
           
-          chunk_stack_name <- paste0(chunks_directory,"tmp_chunk_",chunk,"_stack.tif") 
           chunk_bfast_name <- paste0(chunks_directory,"chunk_",chunk,"_bfast_",title, ".tif")
           
           if(!file.exists(chunk_bfast_name)){
             chunk_start_time   <- Sys.time()
             
             print(paste0("    Processed : ",ceiling((chunk-1)/nrow(sizes)*100),"%"))
-            
-            ############# CREATE THE CHUNK
-            system(sprintf("gdal_translate -srcwin %s %s %s %s -co COMPRESS=LZW %s %s",
-                           sizes[chunk,"start_x"],
-                           sizes[chunk,"start_y"],
-                           sizes[chunk,"size_x"],
-                           sizes[chunk,"size_y"],
-                           stack_name,
-                           chunk_stack_name))
-            
-            chunk_stack      <- brick(chunk_stack_name)
             
             ############# DELETE THE RESULT IF IT EXISTS
             system(sprintf("rm -f %s",chunk_bfast_name))
@@ -201,7 +272,7 @@ for(the_dir in tiles){
             
             ############# CREATE A FUNCTION TO IMPLEMENT BFAST
             loop_process <- function(){
-
+              
               
               chunktime <- system.time(bfmSpatial(chunk_stack, 
                                                   start        = c(monitoring_year_beg[1], 1),
@@ -240,7 +311,7 @@ for(the_dir in tiles){
                           sep="\t"),
                     paste0(data_dir,"performance.txt"),
                     append=TRUE)
-
+              
               ############# WRITE PERFORMANCE PARAMETERS
               chunktime
             }
@@ -249,10 +320,6 @@ for(the_dir in tiles){
               print(paste0("    Processing chunk ",chunk," of ",nrow(sizes)))
               
               loop_process()
-              
-              
-              ############# CLEAN TMP CHUNK
-              system(sprintf(paste0("rm -f ", chunks_directory,"tmp_chunk*.tif")))
               
             },error=function(e){
               print(paste0("    Failed chunk ",chunk))
@@ -276,6 +343,9 @@ for(the_dir in tiles){
           
           
         } ### END OF THE CHUNK LOOP
+        
+        ############# CLEAN TMP CHUNK
+        system(sprintf(paste0("rm -f ", chunks_directory,"tmp_chunk*.tif")))
         
         ############# COMBINE ALL THE CHUNKS
         system(sprintf("gdal_merge.py -co COMPRESS=LZW -o %s %s",
@@ -372,9 +442,9 @@ for(the_dir in tiles){
         
         ####################  CREATE A VRT OUTPUT
         system(sprintf("gdalbuildvrt %s %s",
-                       paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
+                       paste0(data_dir,"bfast_",title,"_threshold.vrt"),
                        paste0(data_dir,
-                              "/*/results/",
+                              "*/results/",
                               "bfast_","*",title,"/",
                               "bfast_","*",title,"_threshold.tif")
         ))
@@ -384,7 +454,7 @@ for(the_dir in tiles){
         
       }else{  #################### End of OVERALL loop and Beginning of SEQUENTIAL loop
         
-      
+        
         
         bfmSpatialSq <- function(start, end, timeStack, ...){
           lapply(start:end,
@@ -492,7 +562,7 @@ for(the_dir in tiles){
                              append=TRUE)
                        
                      } ### END OF CHUNK EXISTS
-
+                     
                      
                    } ### END OF THE CHUNK LOOP
                    

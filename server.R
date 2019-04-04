@@ -295,9 +295,12 @@ shinyServer(function(input, output, session) {
   ################################# OPTION CHUNK SIZE
   output$ui_option_chunk <- renderUI({
     req(input$time_series_dir)
+    cpus <- detectCores()
+    cpu_chunks <- cpus
+    cpu_chunks2 <- cpus / 2
     selectInput(inputId = "option_chunk",
                 label = "Processing chunk size",
-                choices = c(128,256,512,1024),#,"Sequential"),
+                choices = c(cpu_chunks2,cpu_chunks,128,256,512,1024),#,"Sequential"),
                 selected= 512
     )
   })
