@@ -149,8 +149,10 @@ shinyServer(function(input, output, session) {
   ################################# Output directory path
   mask_file_path <- reactive({
     req(input$mask_file)
+    
     df <- parseFilePaths(volumes, input$mask_file)
     file_path <- as.character(df[, "datapath"])
+
   })
   
   ################################# Setup from the archives the Date Range
@@ -307,6 +309,7 @@ shinyServer(function(input, output, session) {
   ############### Parameters title as a reactive
   parameters <- reactive({
     req(input$time_series_dir)
+    #req(input$mask_file)
     
     data_dir            <- paste0(data_dir(),"/")
     
@@ -328,7 +331,11 @@ shinyServer(function(input, output, session) {
     mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
     formula             <- paste0("response ~ ",paste(formula_elements,sep = " " ,collapse = "+"))
     
-    mask_file_path <- input$mask_file_path
+    if(input$option_useMask == "FNF Mask"){
+      mask_file_path      <- mask_file_path()
+    }else{ mask_file_path      <- ""}
+
+    
     title <- paste0("O_",order,
                     "_H_",paste0(history,collapse = "-"),
                     "_T_",type_num,
@@ -487,18 +494,18 @@ shinyServer(function(input, output, session) {
     print(rf)
     print(levels(rf))
     
-    lab <- factor(c("No change",
+    lab <- factor(c("Nodata","No change",
                     "Small negative","Medium negative","Large negative","Very large negative",
                     "Small positive","Medium positive","Large positive","Very large positive"))
     
-    colorspal <- factor(c("#fdfdfd",
+    colorspal <- factor(c("#000000","#fdfdfd",
                           "#f8ffa3","#fdc980","#e31a1c","#a51013",
                           "#c3e586","#96d165","#58b353","#1a9641"))
     
-    pal <- colorNumeric(c("#fdfdfd",
+    pal <- colorNumeric(c("#000000","#fdfdfd",
                           "#f8ffa3","#fdc980","#e31a1c","#a51013",
                           "#c3e586","#96d165","#58b353","#1a9641"), 
-                        values(rf),
+                        c(0,values(rf)),
                         na.color = "transparent")
     
     m <- leaflet() %>% addTiles() %>%

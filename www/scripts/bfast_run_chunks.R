@@ -65,7 +65,7 @@ for(the_dir in tiles){
     dates          <- unlist(read.csv(paste0(the_path_dir,'/','dates.csv'),header = FALSE))
     
     ################# CREATE LOCAL STACK RESULTS DIRECTORY
-    results_directory <- file.path(output_directory,paste0("bfast_",
+    results_directory <- file.path(output_directory,paste0("tile_",the_dir,"_bfast_",
                                                            stack_basename,"_",title,'/'))
     dir.create(results_directory,recursive = T,showWarnings = F)
     
@@ -319,10 +319,12 @@ for(the_dir in tiles){
           mins_b2    <- cellStats( raster(result,band=2) , "min")
           maxs_b2    <- cellStats( raster(result,band=2) , "max")
           stdevs_b2  <- cellStats( raster(result,band=2) , "sd")
-          system(sprintf("gdal_calc.py -A %s --A_band=2 --co=COMPRESS=LZW --type=Byte --overwrite --outfile=%s --calc=\"%s\"",
+          system(sprintf("gdal_calc.py -A %s --A_band=2 -B %s --B_band=3 --co=COMPRESS=LZW --type=Byte --overwrite --outfile=%s --calc=\"%s\"",
+                         result,
                          result,
                          paste0(results_directory,"tmp_bfast_",title,'_threshold.tif'),
-                         paste0('(A<=',(maxs_b2),")*",
+                         paste0('(1-B)*',
+                                '(A<=',(maxs_b2),")*",
                                 '(A>' ,(means_b2+(stdevs_b2*4)),")*9+",
                                 '(A<=',(means_b2+(stdevs_b2*4)),")*",
                                 '(A>' ,(means_b2+(stdevs_b2*3)),")*8+",
@@ -375,7 +377,7 @@ for(the_dir in tiles){
                        paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
                        paste0(data_dir,
                               "/*/results/",
-                              "bfast_","*",title,"/",
+                              "*_bfast_","*",title,"/",
                               "bfast_","*",title,"_threshold.tif")
         ))
         
