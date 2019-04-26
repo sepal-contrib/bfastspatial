@@ -42,6 +42,7 @@ for(the_dir in tiles){
     if(file.exists(main_stack_name)){
       list_stack <- main_stack_name}}
   
+  list_stack <- paste0(the_path_dir,'/',sub_stacks)
   
   ################# CREATE THE MAIN OUTPUT DIRECTORY
   output_directory <- paste0(the_path_dir,"results/")
