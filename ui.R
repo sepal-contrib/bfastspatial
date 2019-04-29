@@ -159,8 +159,8 @@ shinyUI(
                       br(),
                      uiOutput("ui_option_useMask"),
                       br(),
-                      uiOutput("ui_button_mask")
-                      
+                      uiOutput("ui_button_mask"),
+                     textOutput("print_mask_file")
                   ),
                   
                   ####################################################################################

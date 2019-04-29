@@ -130,7 +130,6 @@ shinyServer(function(input, output, session) {
                      multiple=F)
   })
   
-  
   ################################# Data file path
   data_dir <- reactive({
     validate(need(input$time_series_dir, "Missing input: Please select time series folder"))
@@ -153,6 +152,14 @@ shinyServer(function(input, output, session) {
     df <- parseFilePaths(volumes, input$mask_file)
     file_path <- as.character(df[, "datapath"])
 
+  })
+  
+  ################################# Print selected mask file
+  output$print_mask_file <- renderPrint({
+    req(input$mask_file)
+    req(input$option_useMask == "FNF Mask")
+    df <- parseFilePaths(volumes, input$mask_file)
+    as.character(df[, "datapath"])
   })
   
   ################################# Setup from the archives the Date Range
