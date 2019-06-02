@@ -426,7 +426,8 @@ shinyServer(function(input, output, session) {
                                
                                system(paste0('echo "Preparing data..." > ', progress_file))
                                
-                               system(paste0("nohup Rscript www/scripts/bfast_run_chunks.R ",data_dir,' & '))
+                               system(paste0("nohup Rscript www/scripts/bfast_run_chunks_warp.R ",data_dir,' & '))
+                               #system(paste0("nohup Rscript www/scripts/bfast_run_chunks_translate.R ",data_dir,' & '))
                                
                                print("done")
                              })
