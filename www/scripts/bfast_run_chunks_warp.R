@@ -172,16 +172,30 @@ for(the_dir in tiles){
     
     xmin <- orig_x + cumsum(c(0,rep(chunk_size,nx)*res_x))
     ymin <- orig_y + cumsum(c(0,rep(chunk_size,ny)*res_y))
-
+    
     xmax <- orig_x + res_x * stack_x
     ymax <- orig_y + res_y * stack_y
-        
-    if (nx >= 1) {
-      xmax <- orig_x + c(cumsum(c(chunk_size*res_x,rep(chunk_size,nx-1)*res_x)),res_x * stack_x)
+    
+    rest_x <- nx - stack_x / chunk_size
+    rest_y <- ny - stack_y / chunk_size
+    
+    if(rest_x == 0){
+      xmin <- orig_x + cumsum(c(0,rep(chunk_size,nx-1)*res_x))
+      xmax <- orig_x + c(cumsum(rep(chunk_size,nx-1)*res_x),res_x * stack_x)
     }
     
-    if (ny >= 1) {
-      ymax <- orig_y + c(cumsum(c(chunk_size*res_y,rep(chunk_size,ny-1)*res_y)),res_y * stack_y)
+    if(rest_y == 0){
+      ymin <- orig_y + cumsum(c(0,rep(chunk_size,ny-1)*res_y))
+      ymax <- orig_y + c(cumsum(rep(chunk_size,ny-1)*res_y),res_y * stack_y)
+    }
+    
+    
+    if (nx >= 1 & rest_x != 0) {
+      xmax <- orig_x + c(cumsum(rep(chunk_size,nx)*res_x),res_x * stack_x)
+    }
+    
+    if (ny >= 1 & rest_y != 0 ) {
+      ymax <- orig_y + c(cumsum(rep(chunk_size,ny)*res_y),res_y * stack_y)
     }
     
     stack_proj <- info[12]
