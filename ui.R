@@ -50,6 +50,7 @@ shinyUI(
       sidebarMenu(
         menuItem(textOutput('t0_title',inline=T), tabName = "intro_tab", icon = icon("dashboard")),
         menuItem(textOutput('t1_title',inline=T), tabName = "main_tab", icon = icon("area-chart")),
+        menuItem(textOutput('t2_title',inline=T), tabName = "post_tab", icon = icon("area-chart")),
         hr(),
         br(),
         br(),
@@ -208,10 +209,29 @@ shinyUI(
                 ####################################################################################
                 # End of the fluid row
                 
-        )
+        ),
         ####################################################################################
         # End of the tabItem 
-      )
+        ####################################################################################
+        # Start of the tabItem 
+        tabItem(tabName = "post_tab",
+                fluidRow(
+                  ####################################################################################
+                  # Start of the fluid row
+                  ####################################################################################
+                  # New box
+                  box(title=textOutput('title_post'),width=12,status = "success", solidHeader= TRUE,
+                      "Box content here", br(), "More box content",
+                      numericInput("num_class", label = h3("Numeric input"), value = 5)
+                   
+                      
+                      
+                  )
+                )
+              )
+                ####################################################################################
+                # End of the tabItem 
+              )
       ####################################################################################
       # End of the tabItem list
       

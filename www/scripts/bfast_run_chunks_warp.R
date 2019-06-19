@@ -14,7 +14,7 @@ load(paste0(data_dir,"/my_work_space.RData"))
 overall_start_time <- Sys.time()
 
 chunkerize <- function(infile, outfile, xmin, ymin, xmax, ymax) {
-
+  
   gdalwarp(srcfile=infile, dstfile=outfile,
            t_srs='+proj=longlat +datum=WGS84 +no_defs',
            te=c(xmin, ymin, xmax, ymax), multi=TRUE, 
@@ -28,7 +28,7 @@ chunkerize <- function(infile, outfile, xmin, ymin, xmax, ymax) {
 for(the_dir in tiles){
   print(paste0('BFAST running for ',the_dir))
   
- 
+  
   ############### # check if the processing text exists, create a new blank processing text file
   the_path_dir <- paste0(data_dir, the_dir, '/')
   the_path_dir
@@ -172,10 +172,10 @@ for(the_dir in tiles){
     
     xmin <- orig_x + cumsum(c(0,rep(chunk_size,nx)*res_x))
     ymin <- orig_y + cumsum(c(0,rep(chunk_size,ny)*res_y))
-
+    
     xmax <- orig_x + res_x * stack_x
     ymax <- orig_y + res_y * stack_y
-        
+    
     if (nx >= 1) {
       xmax <- orig_x + c(cumsum(c(chunk_size*res_x,rep(chunk_size,nx-1)*res_x)),res_x * stack_x)
     }
@@ -192,7 +192,7 @@ for(the_dir in tiles){
                         xmax=numeric(),
                         ymax=numeric()
     )
-
+    
     
     for (k in 1:length(xmin)){
       for (i in 1:length(ymin)){ 
@@ -242,7 +242,7 @@ for(the_dir in tiles){
                        sizes$xmax[chunk], 
                        sizes$ymax[chunk])
             
-
+            
             chunk_stack      <- brick(chunk_stack_name)
             
             ############# DELETE THE RESULT IF IT EXISTS
@@ -268,9 +268,9 @@ for(the_dir in tiles){
                                                   type         = type,
                                                   returnLayers = returnLayers,
                                                   mc.cores     = cores))
-             
               
-             ############# WRITE THE TIME TO A LOG
+              
+              ############# WRITE THE TIME TO A LOG
               write(paste0("Chunk: ",
                            chunk,
                            " Start time: ",chunk_start_time,
@@ -303,9 +303,9 @@ for(the_dir in tiles){
                            e),
                     fail_log_filename, 
                     append=TRUE)
-             })
+            })
             
-            } ### END OF TEST EXISTS CHUNK
+          } ### END OF TEST EXISTS CHUNK
           
           print(paste0("    Finished chunk ",chunk))
           
@@ -334,6 +334,7 @@ for(the_dir in tiles){
         ############# NAME OF THE THRESHOLDED OUTPUT
         outputfile   <- paste0(results_directory,"bfast_",title,'_threshold.tif')
         
+        
         ## Post-processing ####
         # calculate the mean, standard deviation, minimum and maximum of the magnitude band
         # reclass the image into 10 classes
@@ -349,34 +350,39 @@ for(the_dir in tiles){
         # 9 = postive very large magnitude change  (mean + 4+ standard deviations)
         
         tryCatch({
-          means_b2   <- cellStats( raster(result,band=2) , "mean") 
-          mins_b2    <- cellStats( raster(result,band=2) , "min")
-          maxs_b2    <- cellStats( raster(result,band=2) , "max")
-          stdevs_b2  <- cellStats( raster(result,band=2) , "sd")
-          system(sprintf("gdal_calc.py -A %s --A_band=2 --co=COMPRESS=LZW --type=Byte --overwrite --outfile=%s --calc=\"%s\"",
+          mult_sd <- 1
+          means_b2 <- as.numeric(unlist(str_split(gdalinfo(result, stats = T)[grep("STATISTICS_MEAN=",gdalinfo(result))],"="))[4])
+          mins_b2 <- as.numeric(unlist(str_split(gdalinfo(result, stats = T)[grep("STATISTICS_MINIMUM=",gdalinfo(result))],"="))[4])
+          maxs_b2 <- as.numeric(unlist(str_split(gdalinfo(result, stats = T)[grep("STATISTICS_MAXIMUM=",gdalinfo(result))],"="))[4])
+          stdevs_b2 <- as.numeric(unlist(str_split(gdalinfo(result, stats = T)[grep("STATISTICS_STDDEV=",gdalinfo(result))],"="))[4]) 
+          stdevs_b2 <- stdevs_b2 * mult_sd
+          num_class <-9
+          eq.reclass <-   paste0('(A<=',(maxs_b2),")*", '(A>',(means_b2+(stdevs_b2*floor(num_class/2))),")*",num_class,"+" ,
+                                 paste( 
+                                   " ( A >",(means_b2+(stdevs_b2*1:(floor(num_class/2)-1))),") *",
+                                   " ( A <=",(means_b2+(stdevs_b2*2:floor(num_class/2))),") *",
+                                   (ceiling(num_class/2)+1):(num_class-1),"+",
+                                   collapse = ""), 
+                                 '(A<=',(means_b2+(stdevs_b2)),")*",
+                                 '(A>', (means_b2-(stdevs_b2)),")*1+",
+                                 '(A>=',(mins_b2),")*",
+                                 '(A<', (means_b2-(stdevs_b2*4)),")*",ceiling(num_class/2),"+",
+                                 paste( 
+                                   " ( A <",(means_b2-(stdevs_b2*1:(floor(num_class/2)-1))),") *",
+                                   " ( A >=",(means_b2-(stdevs_b2*2:floor(num_class/2))),") *",
+                                   2:(ceiling(num_class/2)-1),"+",
+                                   collapse = "")
+          )
+          eq.reclass2 <- as.character(substr(eq.reclass,1,nchar(eq.reclass)-2))
+          system(sprintf("gdal_calc.py -A %s --A_band=2 --co=COMPRESS=LZW --type=Byte --outfile=%s --calc='%s'
+                         ",
                          result,
                          paste0(results_directory,"tmp_bfast_",title,'_threshold.tif'),
-                         paste0('(A<=',(maxs_b2),")*",
-                                '(A>' ,(means_b2+(stdevs_b2*4)),")*9+",
-                                '(A<=',(means_b2+(stdevs_b2*4)),")*",
-                                '(A>' ,(means_b2+(stdevs_b2*3)),")*8+",
-                                '(A<=',(means_b2+(stdevs_b2*3)),")*",
-                                '(A>' ,(means_b2+(stdevs_b2*2)),")*7+",
-                                '(A<=',(means_b2+(stdevs_b2*2)),")*",
-                                '(A>' ,(means_b2+(stdevs_b2)),")*6+",
-                                '(A<=',(means_b2+(stdevs_b2)),")*",
-                                '(A>' ,(means_b2-(stdevs_b2)),")*1+",
-                                '(A>=',(mins_b2),")*",
-                                '(A<' ,(means_b2-(stdevs_b2*4)),")*5+",
-                                '(A>=',(means_b2-(stdevs_b2*4)),")*",
-                                '(A<' ,(means_b2-(stdevs_b2*3)),")*4+",
-                                '(A>=',(means_b2-(stdevs_b2*3)),")*",
-                                '(A<' ,(means_b2-(stdevs_b2*2)),")*3+",
-                                '(A>=',(means_b2-(stdevs_b2*2)),")*",
-                                '(A<' ,(means_b2-(stdevs_b2)),")*2")
+                         eq.reclass2
+                         
           ))
           
-        }, error=function(e){})
+        }, error=function(e){print('something went wrong...')})
         
         ####################  CREATE A PSEUDO COLOR TABLE
         cols <- col2rgb(c("white","beige","yellow","orange","red","darkred","palegreen","green2","forestgreen",'darkgreen'))
@@ -474,9 +480,9 @@ for(the_dir in tiles){
                                     chunk,
                                     " Start time: ",chunk_start_time,
                                     " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")
-                                    ),
-                             chunk_log_year_filename,
-                             append=TRUE)
+                       ),
+                       chunk_log_year_filename,
+                       append=TRUE)
                        
                        bfm_year
                        
@@ -491,21 +497,21 @@ for(the_dir in tiles){
                          
                        },error=function(e){
                          print(paste0("      Failed process on chunk ",chunk))
-
+                         
                          fail_log_year_filename <- paste0(chunks_directory,"fail_chunk_",chunk,"_year_",year,"_params_",title, ".log")
-
+                         
                          write(paste0("Failed Chunk: ",
                                       chunk,
                                       " Start time: ",chunk_start_time,
                                       " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
                                fail_log_year_filename,
                                append=TRUE)
-                         })
+                       })
                        
                      } ### END OF CHUNK EXISTS
                      
                    } ### END OF THE CHUNK LOOP
-
+                   
                    ############# COMBINE ALL THE CHUNKS
                    system(sprintf("gdal_merge.py -co COMPRESS=LZW -o %s %s",
                                   outfl,
@@ -526,7 +532,7 @@ for(the_dir in tiles){
             monitoring_year_end,
             stack_name
           ))
-
+        
         
         ## Post-processing ####
         # output the maximum of the breakpoint dates for all sequential outputs
@@ -563,7 +569,7 @@ for(the_dir in tiles){
       } ## End of SEQUENTIAL loop
       
     } ### End of STACKNAME loop
-
+    
   } ### End of DATA AVAILABLE loop
   
   print(paste0('The result is ',basename(result)))

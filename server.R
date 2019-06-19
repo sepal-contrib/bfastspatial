@@ -542,6 +542,11 @@ shinyServer(function(input, output, session) {
     print(paste0("Parameters are : ",parameters()))
   })
   
+  ##################################################################################################################################
+  ############### Display parameters
+  # You can access the value of the widget with input$num, e.g.
+  output$num_class <- renderPrint({ input$num_class })
+  
   
   ##################################################################################################################################
   ############### Processing time as reactive

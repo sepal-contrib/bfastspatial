@@ -11,6 +11,7 @@ output$title    <- reactive({  "Time series analysis" })
 
 output$t0_title <- reactive({  "Intro" })
 output$t1_title <- reactive({  "Analysis" })
+output$t2_title <- reactive({  "Post-processing" })
 
 output$source_code <- reactive({  "Source code" })
 output$bug_reports <- reactive({  "Bug reports" })
@@ -163,6 +164,10 @@ output$body_disclaimer  <- reactive({
     no responsibility for errors and omissions in the data provided.<br/>
     Users are, however, kindly asked to report any errors or deficiencies in this product to FAO."
 ))})
+
+############################ POSTPROCESSING TAB - BOX 6
+output$title_post <- reactive({"Post processing"})
+output$delete <- reactive({"Post processing"})
 
 
 
