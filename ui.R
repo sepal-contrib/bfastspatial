@@ -222,7 +222,9 @@ shinyUI(
                   # New box
                   box(title=textOutput('title_post'),width=12,status = "success", solidHeader= TRUE,
                       "Box content here", br(), "More box content",
-                      numericInput("num_class", label = h3("Numeric input"), value = 5)
+                      uiOutput("PostProcessButton"),
+                      verbatimTextOutput("print_POSTPROCESS")
+                      #,numericInput("num_class", label = h3("Numeric input"), value = 5)
                    
                       
                       

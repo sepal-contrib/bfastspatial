@@ -357,7 +357,7 @@ shinyServer(function(input, output, session) {
     
     progress_file <- paste0(data_dir,"processing_",title,".txt")
     
-    save(data_dir,progress_file,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
+    save(rootdir,data_dir,progress_file,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
          file = paste0(data_dir,"/my_work_space.RData"))
     
     title
@@ -373,6 +373,15 @@ shinyServer(function(input, output, session) {
     
     actionButton('bfastStartButton', textOutput('start_button'))
   })
+  
+  ##################################################################################################################################
+  ############### Insert the post-process button
+  output$PostProcessButton <- renderUI({
+    req(input$time_series_dir)
+    validate(need(input$option_tiles, "Missing input: Please select at least one folder to process"))
+    actionButton('bfastPostPButton', textOutput('postp_button'))
+  })
+  
   ##################################################################################################################################
   ############### Insert the display button only if in OVERALL mode
   output$DisplayButtonCurrent <- renderUI({
@@ -432,11 +441,49 @@ shinyServer(function(input, output, session) {
                                print("done")
                              })
   
+  ##################################################################################################################################
+  ############### POSTPROCESS BFAST
+  post_process <- eventReactive(input$bfastPostPButton,
+                                {req(input$time_series_dir)
+                                  req(input$bfastPostPButton)
+                                  
+                                  data_dir      <- paste0(data_dir(),"/")
+                                  
+                                  progress_file <- progress_file()
+                                  
+                                  system(paste0('echo "Post Processing " > ', data_dir))
+                                  
+                                  system(paste0("nohup Rscript www/scripts/bfast_postprocess.R ",data_dir,' & '))
+                                  
+                                  print("done")
+                                  
+                                })
+  
   #############################################################
   # Progress monitor function
   output$print_PROGRESS = renderText({
     invalidateLater(1000)
     req(bfast_res())
+    
+    progress_file <- progress_file()
+    
+    if(file.exists(progress_file)){
+      NLI <- as.integer(system2("wc", args = c("-l", progress_file," | awk '{print $1}'"), stdout = TRUE))
+      NLI <- NLI + 1 
+      invalidateLater(1000)
+      paste(readLines(progress_file, n = NLI, warn = FALSE), collapse = "\n")
+    }
+    else{
+      invalidateLater(2001)
+    }
+    
+  })
+  
+  #############################################################
+  # Progress monitor function
+  output$print_POSTPROCESS = renderText({
+    invalidateLater(1000)
+    req(post_process())
     
     progress_file <- progress_file()
     

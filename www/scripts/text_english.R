@@ -20,6 +20,7 @@ output$bug_reports <- reactive({  "Bug reports" })
 output$download_testdata_button <- reactive({"Download test dataset"})
 output$download_csv_button      <- reactive({'Download as tabular data (.csv)'})
 output$start_button             <- reactive({'Launch BFAST calculation'})
+output$postp_button             <- reactive({'Post process'})
 output$display_button_a           <- reactive({'Display selected results'})
 output$display_button_c           <- reactive({'Display BFAST results from this session'})
 
