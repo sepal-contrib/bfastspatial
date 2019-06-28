@@ -168,8 +168,7 @@ shinyServer(function(input, output, session) {
     data_dir <- data_dir()
     first <- list.dirs(data_dir,recursive = F)[1]
     dates <- unlist(read.csv(paste0(first,'/','dates.csv'),header = FALSE))
-    years <- str_split_fixed(unlist(dates),"-",3)[,1]
-    years
+    list_year <- str_split_fixed(unlist(dates),"-",3)[,1]
     # list <- list.files(data_dir,pattern = glob2rx("*_stack*.tif"),recursive = T)
     # unlist(lapply(list,function(x){unlist(strsplit(x,split = "_"))[length(unlist(strsplit(x,split = "_")))-1]}))
   })
@@ -491,6 +490,7 @@ shinyServer(function(input, output, session) {
   
   ############### Display the results as map
   output$display_res  <-  renderLeaflet({
+    req(input$time_series_dir)
     print('Check: Display the map')
     if (is.null(dis_result$a)) return()
     
