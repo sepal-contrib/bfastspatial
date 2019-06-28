@@ -319,6 +319,7 @@ shinyServer(function(input, output, session) {
     #req(input$mask_file)
     
     data_dir            <- paste0(data_dir(),"/")
+    #rootdir            <- paste0(path.expand("~"),"/")
     
     historical_year_beg <- as.numeric(input$option_h_beg)
     monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
@@ -357,7 +358,7 @@ shinyServer(function(input, output, session) {
     
     progress_file <- paste0(data_dir,"processing_",title,".txt")
     
-    save(rootdir,data_dir,progress_file,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
+    save(data_dir,progress_file,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
          file = paste0(data_dir,"/my_work_space.RData"))
     
     title

@@ -50,7 +50,6 @@ shinyUI(
       sidebarMenu(
         menuItem(textOutput('t0_title',inline=T), tabName = "intro_tab", icon = icon("dashboard")),
         menuItem(textOutput('t1_title',inline=T), tabName = "main_tab", icon = icon("area-chart")),
-        menuItem(textOutput('t2_title',inline=T), tabName = "post_tab", icon = icon("area-chart")),
         hr(),
         br(),
         br(),
@@ -93,24 +92,24 @@ shinyUI(
                                     img(src="thumbnails/Open-foris-Logo160.jpg",  height = 70,  width = 70),
                                     br()                                  
                                     
-                           # end tabPanel
+                                    # end tabPanel
                            ),
-                          
+                           
                            tabPanel(textOutput('title3_description'),
                                     htmlOutput('bfast_description'),
                                     img(src="thumbnails/bfastmonitor_1.png", height = 200, width = 500)
                                     
-                           # end tabPanel
+                                    # end tabPanel
                            ),
-                          tabPanel(textOutput('title4_description'),
-                                   htmlOutput('parameter_description')
-                                   # end tabPanel
-                          ),
+                           tabPanel(textOutput('title4_description'),
+                                    htmlOutput('parameter_description')
+                                    # end tabPanel
+                           ),
                            tabPanel(textOutput('title_download_testdata'),
                                     actionButton("download_test_button",
                                                  textOutput('download_testdata_button')),
                                     uiOutput("dynUI_download_test")
-                           # end tabPanel
+                                    # end tabPanel
                            ),
                            tabPanel(textOutput('title_disclaimer'),
                                     br(),
@@ -121,24 +120,24 @@ shinyUI(
                                     img(src="thumbnails/UNREDD_LOGO_COLOUR.jpg",  height = 80,  width = 100),
                                     img(src="thumbnails/Open-foris-Logo160.jpg",  height = 70,  width = 70),
                                     br()                                  
-                           # end tabPanel
+                                    # end tabPanel
                            ),
-                          tabPanel(textOutput('title5_description'),
-                                   htmlOutput('references_text')
-                                   # end tabPanel
-                          )
-                    # end tabBox
+                           tabPanel(textOutput('title5_description'),
+                                    htmlOutput('references_text')
+                                    # end tabPanel
                            )
-
-
+                           # end tabBox
+                    )
+                    
+                    
+                    ####################################################################################
+                    # End of the Box
+                    
+                  )
                   ####################################################################################
-                  # End of the Box
+                  # End of the fluid row
                   
                 )
-                ####################################################################################
-                # End of the fluid row
-                
-        )
         ),
         ####################################################################################
         # End of the tabItem 
@@ -158,10 +157,10 @@ shinyUI(
                       textOutput("outdirpath"),
                       uiOutput("ui_tiles"),
                       br(),
-                     uiOutput("ui_option_useMask"),
+                      uiOutput("ui_option_useMask"),
                       br(),
                       uiOutput("ui_button_mask"),
-                     textOutput("print_mask_file")
+                      textOutput("print_mask_file")
                   ),
                   
                   ####################################################################################
@@ -197,10 +196,10 @@ shinyUI(
                       uiOutput("DisplayButtonCurrent"),
                       uiOutput("DisplayButtonAvailable"),
                       
-                      leafletOutput("display_res")
-                      
-                  ,
-                      uiOutput("message")
+                      leafletOutput("display_res"),
+                      uiOutput("message"),
+                      uiOutput("PostProcessButton"),
+                      verbatimTextOutput("print_POSTPROCESS")
                   )
                   ####################################################################################
                   # End of the Box
@@ -209,31 +208,10 @@ shinyUI(
                 ####################################################################################
                 # End of the fluid row
                 
-        ),
+        )
         ####################################################################################
         # End of the tabItem 
-        ####################################################################################
-        # Start of the tabItem 
-        tabItem(tabName = "post_tab",
-                fluidRow(
-                  ####################################################################################
-                  # Start of the fluid row
-                  ####################################################################################
-                  # New box
-                  box(title=textOutput('title_post'),width=12,status = "success", solidHeader= TRUE,
-                      "Box content here", br(), "More box content",
-                      uiOutput("PostProcessButton"),
-                      verbatimTextOutput("print_POSTPROCESS")
-                      #,numericInput("num_class", label = h3("Numeric input"), value = 5)
-                   
-                      
-                      
-                  )
-                )
-              )
-                ####################################################################################
-                # End of the tabItem 
-              )
+      )
       ####################################################################################
       # End of the tabItem list
       
