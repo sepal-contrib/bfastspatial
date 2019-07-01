@@ -360,7 +360,7 @@ shinyServer(function(input, output, session) {
     
     dir.create(res_dir,recursive = T,showWarnings = F)
     
-    save(data_dir,res_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
+    save(rootdir,data_dir,res_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
          file = paste0(res_dir,"my_work_space.RData"))
     
     title

@@ -610,5 +610,93 @@ for(the_dir in tiles){
 } ### END OF TILE LOOP
 
 
+############### MAKE A LIST OF RESULTS
+list_res <- list.files(res_dir,pattern = glob2rx(paste0("bfast*",title,".tif")),recursive = T)
+
+####################  CREATE A VRT OUTPUT
+system(sprintf("gdalbuildvrt %s %s",
+               paste0(res_dir,"results_",title,".vrt"),
+               paste0(res_dir,list_res,collapse=' ')
+))
 
 
+## Compress final result
+system(sprintf("gdal_translate -co COMPRESS=LZW %s %s",
+               paste0(res_dir,"results_",title,".vrt"),
+               paste0(res_dir,"final_results_",title,".tif")
+))
+
+####################  EXTRACT MAGNITUDE
+system(sprintf("gdal_translate -b 2 %s %s",
+               paste0(res_dir,"results_",title,".vrt"),
+               paste0(res_dir,"results_",title,"_magnitude.vrt")
+))
+
+####################  COMPUTE  STATS FOR MAGNITUDE
+res   <- paste0(res_dir,"results_",title,"_magnitude.vrt")
+stats <- paste0(res_dir,"stats_",title,".txt")
+
+system(sprintf("gdalinfo -stats %s > %s",
+               res,
+               stats
+))
+
+s <- readLines(stats)
+maxs_b2   <- as.numeric(unlist(strsplit(s[grepl("STATISTICS_MAXIMUM",s)],"="))[2])
+mins_b2   <- as.numeric(unlist(strsplit(s[grepl("STATISTICS_MINIMUM",s)],"="))[2])
+means_b2  <- as.numeric(unlist(strsplit(s[grepl("STATISTICS_MEAN",s)],"="))[2])
+stdevs_b2 <- as.numeric(unlist(strsplit(s[grepl("STATISTICS_STDDEV",s)],"="))[2])
+
+num_class <-9
+eq.reclass <-   paste0('(A<=',(maxs_b2),")*", '(A>',(means_b2+(stdevs_b2*floor(num_class/2))),")*",num_class,"+" ,
+                       paste( 
+                         " ( A >",(means_b2+(stdevs_b2*1:(floor(num_class/2)-1))),") *",
+                         " ( A <=",(means_b2+(stdevs_b2*2:floor(num_class/2))),") *",
+                         (ceiling(num_class/2)+1):(num_class-1),"+",
+                         collapse = ""), 
+                       '(A<=',(means_b2+(stdevs_b2)),")*",
+                       '(A>', (means_b2-(stdevs_b2)),")*1+",
+                       '(A>=',(mins_b2),")*",
+                       '(A<', (means_b2-(stdevs_b2*4)),")*",ceiling(num_class/2),"+",
+                       paste( 
+                         " ( A <",(means_b2-(stdevs_b2*1:(floor(num_class/2)-1))),") *",
+                         " ( A >=",(means_b2-(stdevs_b2*2:floor(num_class/2))),") *",
+                         2:(ceiling(num_class/2)-1),"+",
+                         collapse = "")
+)
+eq.reclass2 <- as.character(substr(eq.reclass,1,nchar(eq.reclass)-2))
+
+####################  COMPUTE THRESHOLDS LAYER
+system(sprintf("gdal_calc.py -A %s --co=COMPRESS=LZW --type=Byte --overwrite --outfile=%s --calc=\"%s\"",
+               res,
+               paste0(res_dir,"tmp_results_",title,"_magnitude.tif"),
+               eq.reclass2
+               
+               ))     
+               
+####################  CREATE A PSEUDO COLOR TABLE
+cols <- col2rgb(c("black","beige","yellow","orange","red","darkred","palegreen","green2","forestgreen",'darkgreen'))
+pct <- data.frame(cbind(c(0:9),
+                        cols[1,],
+                        cols[2,],
+                        cols[3,]
+))
+
+write.table(pct,paste0(rootdir,'bfast_results/color_table.txt'),row.names = F,col.names = F,quote = F)
+
+################################################################################
+## Add pseudo color table to result
+system(sprintf("(echo %s) | oft-addpct.py %s %s",
+               paste0(rootdir,'bfast_results/color_table.txt'),
+               paste0(res_dir,"tmp_results_",title,"_magnitude.tif"),
+               paste0(res_dir,"tmp_results_",title,"_magnitude_pct.tif")
+))
+
+## Compress final result
+system(sprintf("gdal_translate -ot Byte -co COMPRESS=LZW %s %s",
+               paste0(res_dir,"tmp_results_",title,"_magnitude_pct.tif"),
+               paste0(res_dir,"results_",title,"_threshold.tif")
+))
+
+system(sprintf("rm -r -f %s",
+               paste0(res_dir,"tmp*.tif")))
