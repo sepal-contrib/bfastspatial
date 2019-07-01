@@ -8,9 +8,12 @@ source("www/scripts/load_BFAST_packages.R",echo = TRUE)
 options(echo=TRUE)
 args <- commandArgs(TRUE)
 print(args[1])
-data_dir <- args[1]
 
-load(paste0(data_dir,"/my_work_space.RData"))
+data_dir      <- args[1]
+progress_file <- args[2]
+res_dir       <- args[3]
+
+load(paste0(res_dir,"/my_work_space.RData"))
 overall_start_time <- Sys.time()
 
 chunkerize <- function(infile, outfile, xmin, ymin, xmax, ymax) {
@@ -54,9 +57,8 @@ for(the_dir in tiles){
   list_stack <- paste0(the_path_dir,'/',sub_stacks)
   
   ################# CREATE THE MAIN OUTPUT DIRECTORY
-  output_directory <- paste0(the_path_dir,"results/")
+  output_directory <- paste0(res_dir,the_dir,"/")
   dir.create(output_directory, recursive = T,showWarnings = F)
-  
   
   ############### Write the console outputs 
   print(paste0('The results will be found in the folder: ' ,paste0(output_directory)))
@@ -76,7 +78,7 @@ for(the_dir in tiles){
     
     ################# CREATE LOCAL STACK RESULTS DIRECTORY
     results_directory <- file.path(output_directory,paste0("bfast_",
-                                                           stack_basename,"_",title,'/'))
+                                                           stack_basename,'/'))
     dir.create(results_directory,recursive = T,showWarnings = F)
     
     chunks_directory <- file.path(results_directory,paste0("chunks",'/'))
@@ -91,10 +93,10 @@ for(the_dir in tiles){
     tryCatch({
       if(mask == "FNF Mask" ){
         print('  Using the Forest/Nonforest mask')
-        mask_file_path     <- mask_file_path
-        data_input_msk     <- paste0(the_path_dir,'/','mask_FNF.tif')
-        data_input_vrt_nd  <- paste0(the_path_dir,'/','stack_ND.tif')
-        data_input_tif_msk <- paste0(the_path_dir,'/','stack_FNF.tif')
+        
+        data_input_msk     <- paste0(results_directory,'/','mask_FNF.tif')
+        data_input_vrt_nd  <- paste0(results_directory,'/','stack_ND.tif')
+        data_input_tif_msk <- paste0(results_directory,'/','stack_FNF.tif')
         
         #################### ALIGN 
         input  <- mask_file_path
@@ -251,6 +253,14 @@ for(the_dir in tiles){
             ############# GENERATE A LOG FILENAME
             chunk_log_filename <- paste0(chunks_directory,"log_chunk_",chunk,"_params_",title, ".log")
             
+            warp_time <- difftime(Sys.time(), chunk_start_time, units='mins')
+            
+            write(paste(paste0("Chunk:",'\t',chunk),
+                        paste0("Start time:",'\t',chunk_start_time),
+                        paste0("Clip time:",'\t',warp_time),
+                        sep='\n'),
+                  chunk_log_filename,
+                  append=TRUE)
             
             ############# CREATE A FUNCTION TO IMPLEMENT BFAST
             loop_process <- function(){
@@ -270,15 +280,32 @@ for(the_dir in tiles){
                                                   mc.cores     = cores))
               
               
-              ############# WRITE THE TIME TO A LOG
-              write(paste0("Chunk: ",
-                           chunk,
-                           " Start time: ",chunk_start_time,
-                           " End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                           " for a total time of ", chunktime[[3]]/60," minutes"),
+              ############# WRITE SUCCESS TO A LOG
+              difftime <- difftime(Sys.time(), chunk_start_time, units='mins')
+              
+              write(paste(paste0("End time:",'\t',format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
+                          paste0("Bfast time:",'\t',chunktime[[3]]/60),
+                          paste0("Total time:",'\t',difftime),
+                          paste0("Dates:",'\t',length(dates)),
+                          paste0("Size x:",'\t',sizes[chunk,"size_x"]),
+                          paste0("Size y:",'\t',sizes[chunk,"size_y"])
+                          ,sep="\n"),
                     chunk_log_filename,
                     append=TRUE)
               
+              ############# WRITE PERFORMANCE PARAMETERS
+              write(paste(basename(data_dir),
+                          title,
+                          cores,
+                          length(dates),
+                          sizes[chunk,"size_x",],
+                          sizes[chunk,"size_y"],
+                          warp_time,
+                          difftime,
+                          as.numeric(difftime)/as.numeric(sizes[chunk,"size_x",])/as.numeric(sizes[chunk,"size_y"])/length(dates)*1000*60,
+                          sep="\t"),
+                    paste0(res_dir,"performance.txt"),
+                    append=TRUE)
               
               chunktime
             }
@@ -333,7 +360,6 @@ for(the_dir in tiles){
         
         ############# NAME OF THE THRESHOLDED OUTPUT
         outputfile   <- paste0(results_directory,"bfast_",title,'_threshold.tif')
-        
         
         ## Post-processing ####
         # calculate the mean, standard deviation, minimum and maximum of the magnitude band
@@ -412,11 +438,11 @@ for(the_dir in tiles){
         
         ####################  CREATE A VRT OUTPUT
         system(sprintf("gdalbuildvrt %s %s",
-                       paste0(data_dir,"/bfast_",title,"_threshold.vrt"),
-                       paste0(data_dir,
-                              "/*/results/",
-                              "bfast_","*",title,"/",
-                              "bfast_","*",title,"_threshold.tif")
+                       paste0(res_dir,"/bfast_",basename(data_dir),"_",title,"_threshold.vrt"),
+                       paste0(res_dir,
+                              "/*/",
+                              "bfast_","*","/",
+                              "bfast_","*","_threshold.tif")
         ))
         
         system(sprintf(paste0("rm -f ",results_directory,"tmp*.tif")))

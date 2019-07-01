@@ -26,7 +26,7 @@ options(stringsAsFactors=FALSE)
 options(shiny.launch.browser=T)
 
 source("www/scripts/load_packages.R",echo = TRUE)
-source("www/scripts/load_BFAST_packages.R",echo = TRUE)
+#source("www/scripts/load_BFAST_packages.R",echo = TRUE)
 
 
 ####################################################################################
@@ -48,8 +48,9 @@ shinyUI(
     dashboardSidebar(
       width = 350,
       sidebarMenu(
-        menuItem(textOutput('t0_title',inline=T), tabName = "intro_tab", icon = icon("dashboard")),
-        menuItem(textOutput('t1_title',inline=T), tabName = "main_tab", icon = icon("area-chart")),
+        menuItem(textOutput('t0_title',inline=T), tabName = "intro_tab", icon = icon("info-circle")),
+        menuItem(textOutput('t1_title',inline=T), tabName = "main_tab", icon = icon("dashboard")),
+        menuItem(textOutput('t2_title',inline=T), tabName = "post_tab", icon = icon("area-chart")),
         hr(),
         br(),
         br(),
@@ -191,15 +192,34 @@ shinyUI(
                       uiOutput("StartButton"),
                       
                       verbatimTextOutput("print_PROGRESS"),
-                      uiOutput("list_thres"),
+                      
                       
                       uiOutput("DisplayButtonCurrent"),
-                      uiOutput("DisplayButtonAvailable"),
                       
                       leafletOutput("display_res"),
-                      uiOutput("message"),
-                      uiOutput("PostProcessButton"),
-                      verbatimTextOutput("print_POSTPROCESS")
+                      uiOutput("message")
+                  )
+                  ####################################################################################
+                  # End of the Box
+                  
+                )
+                ####################################################################################
+                # End of the fluid row
+                
+        ),
+        ####################################################################################
+        # End of the tabItem 
+        
+        tabItem(tabName = "post_tab",
+                fluidRow(
+                  ####################################################################################
+                  # New box
+                  box(title=textOutput('title_display'),width=12,status = "success", solidHeader= TRUE,
+                      #textOutput('title_available'),
+                      uiOutput("list_thres"),
+                      uiOutput("RefreshButton"),
+                      uiOutput("DisplayButtonAvailable"),
+                      leafletOutput("display_available_res")
                   )
                   ####################################################################################
                   # End of the Box

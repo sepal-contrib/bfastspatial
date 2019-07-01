@@ -9,9 +9,9 @@
 ############################ TITLES
 output$title    <- reactive({  "Time series analysis" })
 
-output$t0_title <- reactive({  "Intro" })
-output$t1_title <- reactive({  "Analysis" })
-output$t2_title <- reactive({  "Post-processing" })
+output$t0_title <- reactive({  "Introduction" })
+output$t1_title <- reactive({  "Process" })
+output$t2_title <- reactive({  "Compare" })
 
 output$source_code <- reactive({  "Source code" })
 output$bug_reports <- reactive({  "Bug reports" })
@@ -21,8 +21,9 @@ output$download_testdata_button <- reactive({"Download test dataset"})
 output$download_csv_button      <- reactive({'Download as tabular data (.csv)'})
 output$start_button             <- reactive({'Launch BFAST calculation'})
 output$postp_button             <- reactive({'Post process'})
-output$display_button_a           <- reactive({'Display selected results'})
-output$display_button_c           <- reactive({'Display BFAST results from this session'})
+output$display_button_a         <- reactive({'Display selected results'})
+output$text_refresh_a           <- reactive({'Refresh list'})
+output$display_button_c         <- reactive({'Display BFAST results from this session'})
 
 output$text_option_h_date_break <- reactive({"History beginning year"})
 output$text_option_m_date_break <- reactive({"Monitoring start and end years"})
@@ -152,6 +153,9 @@ output$body_output_dir  <- reactive({
 ############################ INTRODUCTION TAB - BOX 5
 output$title_result <- reactive({"Results"})
 
+############################ INTRODUCTION TAB - BOX 5
+output$title_display <- reactive({"Compare"})
+output$title_available <- reactive({"Available results"})
 
 ############################ INTRODUCTION TAB - BOX 4
 output$title_disclaimer <- reactive({"Disclaimer"})
