@@ -514,7 +514,7 @@ shinyServer(function(input, output, session) {
     
     load(paste0(res_dir(),"/my_work_space.RData"))
     
-    if(mode == "Overall"){       dis_result$c <- paste0(res_dir,"/bfast_",basename(data_dir),"_",title,"_threshold.vrt")}
+    if(mode == "Overall"){       dis_result$c <- paste0(res_dir,"results_",title,"_threshold.tif")}
     if(mode == "Sequential"){    dis_result$c <- NULL}
     
   })
