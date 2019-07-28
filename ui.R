@@ -176,8 +176,8 @@ shinyUI(
                       uiOutput("ui_option_order"),
                       uiOutput("ui_option_type"),
                       uiOutput("ui_option_returnLayers"),
-                      uiOutput("ui_option_sequential"),
-                      uiOutput("ui_option_chunk")
+                      uiOutput("ui_option_sequential")
+                      #uiOutput("ui_option_chunk")
                       
                   )
                 ),

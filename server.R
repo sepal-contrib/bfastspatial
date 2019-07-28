@@ -332,7 +332,7 @@ shinyServer(function(input, output, session) {
     formula_elements    <- unlist(input$option_formula)
     returnLayers        <- c(as.character(input$option_returnLayers))
     
-    chunk_size          <- as.numeric(input$option_chunk)
+    #chunk_size          <- as.numeric(input$option_chunk)
     
     type_num            <- c("OC","OM","R","M","f")[which(c("OLS-CUSUM", "OLS-MOSUM", "RE", "ME","fluctuation")==type)]
     mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
@@ -348,7 +348,7 @@ shinyServer(function(input, output, session) {
                     "_F_",paste0(substr(formula_elements,1,1),collapse= ""),
                     mask_opt,'_',
                     mode,'_',
-                    chunk_size,'_',
+                    #chunk_size,'_',
                     historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
     
     
@@ -360,7 +360,9 @@ shinyServer(function(input, output, session) {
     
     dir.create(res_dir,recursive = T,showWarnings = F)
     
-    save(rootdir,data_dir,res_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
+    save(rootdir,data_dir,res_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,
+         #chunk_size,
+         type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
          file = paste0(res_dir,"my_work_space.RData"))
     
     title
@@ -453,7 +455,8 @@ shinyServer(function(input, output, session) {
                                
                                system(paste0('echo "Preparing data..." > ', progress_file))
                                
-                               system(paste0("nohup Rscript www/scripts/bfast_run_chunks_warp.R ",data_dir,' ',progress_file,' ',res_dir,' & '))
+                               system(paste0("nohup Rscript www/scripts/bfast_run_nochunk.R ",data_dir,' ',progress_file,' ',res_dir,' & '))
+                               #system(paste0("nohup Rscript www/scripts/bfast_run_chunks_warp.R ",data_dir,' ',progress_file,' ',res_dir,' & '))
                                #system(paste0("nohup Rscript www/scripts/bfast_run_chunks_translate.R ",data_dir,' & '))
                                
                                print("done")
