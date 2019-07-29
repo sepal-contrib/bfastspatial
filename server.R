@@ -315,7 +315,7 @@ shinyServer(function(input, output, session) {
   ############### Parameters title as a reactive
   parameters <- reactive({
     req(input$time_series_dir)
-    #req(input$mask_file)
+    req(input$bfastStartButton)
     
     data_dir            <- paste0(data_dir(),"/")
     
@@ -331,7 +331,7 @@ shinyServer(function(input, output, session) {
     formula_elements    <- unlist(input$option_formula)
     returnLayers        <- c(as.character(input$option_returnLayers))
     
-    chunk_size          <- as.numeric(input$option_chunk)
+    #chunk_size          <- as.numeric(input$option_chunk)
     
     type_num            <- c("OC","OM","R","M","f")[which(c("OLS-CUSUM", "OLS-MOSUM", "RE", "ME","fluctuation")==type)]
     mask_opt            <- c("","_msk")[which(c("No Mask","FNF Mask")==mask)]
@@ -341,26 +341,47 @@ shinyServer(function(input, output, session) {
       mask_file_path      <- mask_file_path()
     }else{ mask_file_path      <- ""}
 
-    
     title <- paste0("O_",order,
                     "_H_",paste0(history,collapse = "-"),
                     "_T_",type_num,
                     "_F_",paste0(substr(formula_elements,1,1),collapse= ""),
                     mask_opt,'_',
                     mode,'_',
-                    chunk_size,'_',
+                    #chunk_size,'_',
                     historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
     
     
     tiles <- input$option_tiles
     
-    progress_file <- paste0(data_dir,"processing_",title,".txt")
+    rootdir    <- paste0(path.expand("~"),"/")
+    username   <- unlist(strsplit(rootdir,"/"))[3]
+    res_dir    <- paste0(rootdir,'bfast_results/',basename(data_dir),"_",username,"_PARAM_",title,"/")
     
-    save(data_dir,progress_file,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,chunk_size,type,mask,formula_elements,type_num,mask_opt,formula,title,tiles,mask_file_path,returnLayers,
-         file = paste0(data_dir,"/my_work_space.RData"))
+    dir.create(res_dir,recursive = T,showWarnings = F)
+    
+    save(rootdir,data_dir,res_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,
+         #chunk_size,
+         type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
+         file = paste0(res_dir,"my_work_space.RData"))
     
     title
   })
+  
+  ##################################################################################################################################
+  ############### Result storage directory name as a reactive
+  res_dir <- reactive({
+    req(data_dir())
+    req(parameters())
+    
+    rootdir    <- paste0(path.expand("~"),"/")
+    username   <- unlist(strsplit(rootdir,"/"))[3]
+    
+    data_dir   <- paste0(data_dir(),"/")
+    title      <- parameters()
+    res_dir    <- paste0(rootdir,'bfast_results/',basename(data_dir),"_",username,"_PARAM_",title,"/")
+  })
+  
+  
   
   ##################################################################################################################################
   ############### Insert the start button
@@ -372,6 +393,8 @@ shinyServer(function(input, output, session) {
     
     actionButton('bfastStartButton', textOutput('start_button'))
   })
+  
+  
   ##################################################################################################################################
   ############### Insert the display button only if in OVERALL mode
   output$DisplayButtonCurrent <- renderUI({
@@ -389,20 +412,24 @@ shinyServer(function(input, output, session) {
   ##################################################################################################################################
   ############### Insert the display button
   output$DisplayButtonAvailable <- renderUI({
-    req(input$time_series_dir)
-    req(input$results_thres)
     actionButton('bfastDisplayButton_a', textOutput('display_button_a'))
   })
   
+  ##################################################################################################################################
+  ############### Insert the refresh button
+  output$RefreshButton <- renderUI({
+    actionButton('refresh_a', textOutput('text_refresh_a'))
+  })
   ##################################################################################################################################
   ############### Set the progress file as a reactive of the parameters
   progress_file <- reactive({
     req(input$time_series_dir)
     req(parameters())
-    paste0(data_dir(),"/","processing_",parameters(),".txt")
+
+    paste0(res_dir(),"processing_",parameters(),".txt")
   })
   
-  
+
   ##################################################################################################################################
   ############### SET A REACTIVE VARIABLE TO MONITOR STATUS
   dis_result <- reactiveValues()
@@ -420,12 +447,15 @@ shinyServer(function(input, output, session) {
                                req(input$bfastStartButton)
                                
                                data_dir      <- paste0(data_dir(),"/")
+                               res_dir       <- paste0(res_dir(),"/")
                                
                                progress_file <- progress_file()
+                               parameters    <- parameters()
                                
                                system(paste0('echo "Preparing data..." > ', progress_file))
                                
-                               system(paste0("nohup Rscript www/scripts/bfast_run_chunks_warp.R ",data_dir,' & '))
+                               system(paste0("nohup Rscript www/scripts/bfast_run_nochunk.R ",data_dir,' ',progress_file,' ',res_dir,' & '))
+                               #system(paste0("nohup Rscript www/scripts/bfast_run_chunks_warp.R ",data_dir,' ',progress_file,' ',res_dir,' & '))
                                #system(paste0("nohup Rscript www/scripts/bfast_run_chunks_translate.R ",data_dir,' & '))
                                
                                print("done")
@@ -451,46 +481,101 @@ shinyServer(function(input, output, session) {
     
   })
   
+
+  
   #############################################################
   ## list of available results to display
-  available_results <- reactive({
-    req(input$time_series_dir)
-    list.files(path= data_dir(), pattern = "_threshold.vrt$", recursive = TRUE)
+  available_results <- eventReactive(input$refresh_a,{
+    list.files(path= paste0(paste0(path.expand("~"),"/"),'bfast_results/'), pattern = "_threshold.vrt$", recursive = TRUE)
   })
   
+
+    
   ################################# LIST OF AVAILABLE RESULTS
   output$list_thres <- renderUI({
-    req(input$time_series_dir)
+    fullpaths        <- available_results()
+    names(fullpaths) <- basename(available_results())
+    
     selectInput(inputId = "results_thres",
-                label = "Results to display in output data directory",
-                choices = basename(available_results()),
-                selected= basename(available_results()),
-                multiple = FALSE
-    )
+                label = "List of processed folders",
+                choices = fullpaths
+                )
   })
   
-  ################################# DISPLAY AVAILABLE  RESULTS BUTTON
+  ################################# CHECK AVAILABLE RESULTS 
   observeEvent(input$bfastDisplayButton_a, {
-    req(input$time_series_dir)
-    dis_result$a <- paste0(data_dir(),'/',input$results_thres)
+    dis_result$a <- paste0(paste0(path.expand("~"),"/"),'bfast_results/',input$results_thres)
   })
   
   
   ################################# DISPLAY THIS SESSION RESULTS BUTTON
   observeEvent(input$bfastDisplayButton_c, {
     req(bfast_res())
-    req(input$time_series_dir)
+
+    res_dir <- res_dir()
     
-    data_dir <- data_dir()
-    load(paste0(data_dir(),"/my_work_space.RData"))
-    if(mode == "Overall"){       dis_result$a <- paste0(data_dir,"/bfast_",title,"_threshold.vrt")}
-    if(mode == "Sequential"){    dis_result$a <- NULL}
+    load(paste0(res_dir(),"/my_work_space.RData"))
+    
+    if(mode == "Overall"){       dis_result$c <- paste0(res_dir,"results_",title,"_threshold.tif")}
+    if(mode == "Sequential"){    dis_result$c <- NULL}
     
   })
   
-  ############### Display the results as map
+  ############### Display the CURRENT results as map
   output$display_res  <-  renderLeaflet({
+<<<<<<< HEAD
     req(input$time_series_dir)
+=======
+    req(bfast_res())
+    print('Check: Display the map')
+    if (is.null(dis_result$c)) return()
+    
+    print(dis_result$c)
+    
+    ############### READ THE RESULT AS RASTER-FACTOR
+    rf <- as.factor(raster(dis_result$c))
+    
+    print(rf)
+    print(levels(rf))
+    
+    lab <- factor(c("Nodata","No change",
+                    "Small negative","Medium negative","Large negative","Very large negative",
+                    "Small positive","Medium positive","Large positive","Very large positive"))
+    
+    colorspal <- factor(c("#000000","#fdfdfd",
+                          "#f8ffa3","#fdc980","#e31a1c","#a51013",
+                          "#c3e586","#96d165","#58b353","#1a9641"))
+    
+    pal <- colorNumeric(c("#000000","#fdfdfd",
+                          "#f8ffa3","#fdc980","#e31a1c","#a51013",
+                          "#c3e586","#96d165","#58b353","#1a9641"), 
+                        c(0,values(rf)),
+                        na.color = "transparent")
+    
+    m <- leaflet() %>% addTiles() %>%
+      addProviderTiles('Esri.WorldImagery') %>% 
+      
+      addProviderTiles("CartoDB.PositronOnlyLabels")%>% 
+      
+      addRasterImage(rf, colors = pal, opacity = 0.8, group='Results') %>%
+      
+      addLegend(colors=colorspal,
+                values = values(rf),
+                title = "BFAST results"
+                ,labels= lab) %>% 
+      
+      addLayersControl(
+        overlayGroups = c("Results"),
+        options = layersControlOptions(collapsed = FALSE)
+      )  
+    
+  })
+  
+  
+  ############### Display the AVAILABLE results as map
+  output$display_available_res <-  renderLeaflet({
+    req(input$bfastDisplayButton_a)
+>>>>>>> postprocessing
     print('Check: Display the map')
     if (is.null(dis_result$a)) return()
     
@@ -541,6 +626,11 @@ shinyServer(function(input, output, session) {
     req(input$time_series_dir)
     print(paste0("Parameters are : ",parameters()))
   })
+  
+  ##################################################################################################################################
+  ############### Display parameters
+  # You can access the value of the widget with input$num, e.g.
+  output$num_class <- renderPrint({ input$num_class })
   
   
   ##################################################################################################################################

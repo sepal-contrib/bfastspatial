@@ -236,10 +236,11 @@ for(the_dir in tiles){
                           length(dates),
                           sizes[chunk,"size_x",],
                           sizes[chunk,"size_y"],
+                          trans_time,
                           difftime,
                           as.numeric(difftime)/as.numeric(sizes[chunk,"size_x",])/as.numeric(sizes[chunk,"size_y"])/length(dates)*1000*60,
                           sep="\t"),
-                    paste0(data_dir,"performance.txt"),
+                    paste0(res_dir,"performance.txt"),
                     append=TRUE)
 
               ############# WRITE PERFORMANCE PARAMETERS

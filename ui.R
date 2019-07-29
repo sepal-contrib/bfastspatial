@@ -26,7 +26,7 @@ options(stringsAsFactors=FALSE)
 options(shiny.launch.browser=T)
 
 source("www/scripts/load_packages.R",echo = TRUE)
-source("www/scripts/load_BFAST_packages.R",echo = TRUE)
+#source("www/scripts/load_BFAST_packages.R",echo = TRUE)
 
 
 ####################################################################################
@@ -48,8 +48,9 @@ shinyUI(
     dashboardSidebar(
       width = 350,
       sidebarMenu(
-        menuItem(textOutput('t0_title',inline=T), tabName = "intro_tab", icon = icon("dashboard")),
-        menuItem(textOutput('t1_title',inline=T), tabName = "main_tab", icon = icon("area-chart")),
+        menuItem(textOutput('t0_title',inline=T), tabName = "intro_tab", icon = icon("info-circle")),
+        menuItem(textOutput('t1_title',inline=T), tabName = "main_tab", icon = icon("dashboard")),
+        menuItem(textOutput('t2_title',inline=T), tabName = "post_tab", icon = icon("area-chart")),
         hr(),
         br(),
         br(),
@@ -92,24 +93,24 @@ shinyUI(
                                     img(src="thumbnails/Open-foris-Logo160.jpg",  height = 70,  width = 70),
                                     br()                                  
                                     
-                           # end tabPanel
+                                    # end tabPanel
                            ),
-                          
+                           
                            tabPanel(textOutput('title3_description'),
                                     htmlOutput('bfast_description'),
                                     img(src="thumbnails/bfastmonitor_1.png", height = 200, width = 500)
                                     
-                           # end tabPanel
+                                    # end tabPanel
                            ),
-                          tabPanel(textOutput('title4_description'),
-                                   htmlOutput('parameter_description')
-                                   # end tabPanel
-                          ),
+                           tabPanel(textOutput('title4_description'),
+                                    htmlOutput('parameter_description')
+                                    # end tabPanel
+                           ),
                            tabPanel(textOutput('title_download_testdata'),
                                     actionButton("download_test_button",
                                                  textOutput('download_testdata_button')),
                                     uiOutput("dynUI_download_test")
-                           # end tabPanel
+                                    # end tabPanel
                            ),
                            tabPanel(textOutput('title_disclaimer'),
                                     br(),
@@ -120,24 +121,24 @@ shinyUI(
                                     img(src="thumbnails/UNREDD_LOGO_COLOUR.jpg",  height = 80,  width = 100),
                                     img(src="thumbnails/Open-foris-Logo160.jpg",  height = 70,  width = 70),
                                     br()                                  
-                           # end tabPanel
+                                    # end tabPanel
                            ),
-                          tabPanel(textOutput('title5_description'),
-                                   htmlOutput('references_text')
-                                   # end tabPanel
-                          )
-                    # end tabBox
+                           tabPanel(textOutput('title5_description'),
+                                    htmlOutput('references_text')
+                                    # end tabPanel
                            )
-
-
+                           # end tabBox
+                    )
+                    
+                    
+                    ####################################################################################
+                    # End of the Box
+                    
+                  )
                   ####################################################################################
-                  # End of the Box
+                  # End of the fluid row
                   
                 )
-                ####################################################################################
-                # End of the fluid row
-                
-        )
         ),
         ####################################################################################
         # End of the tabItem 
@@ -157,10 +158,10 @@ shinyUI(
                       textOutput("outdirpath"),
                       uiOutput("ui_tiles"),
                       br(),
-                     uiOutput("ui_option_useMask"),
+                      uiOutput("ui_option_useMask"),
                       br(),
                       uiOutput("ui_button_mask"),
-                     textOutput("print_mask_file")
+                      textOutput("print_mask_file")
                   ),
                   
                   ####################################################################################
@@ -175,8 +176,8 @@ shinyUI(
                       uiOutput("ui_option_order"),
                       uiOutput("ui_option_type"),
                       uiOutput("ui_option_returnLayers"),
-                      uiOutput("ui_option_sequential"),
-                      uiOutput("ui_option_chunk")
+                      uiOutput("ui_option_sequential")
+                      #uiOutput("ui_option_chunk")
                       
                   )
                 ),
@@ -191,15 +192,34 @@ shinyUI(
                       uiOutput("StartButton"),
                       
                       verbatimTextOutput("print_PROGRESS"),
-                      uiOutput("list_thres"),
+                      
                       
                       uiOutput("DisplayButtonCurrent"),
-                      uiOutput("DisplayButtonAvailable"),
                       
-                      leafletOutput("display_res")
-                      
-                  ,
+                      leafletOutput("display_res"),
                       uiOutput("message")
+                  )
+                  ####################################################################################
+                  # End of the Box
+                  
+                )
+                ####################################################################################
+                # End of the fluid row
+                
+        ),
+        ####################################################################################
+        # End of the tabItem 
+        
+        tabItem(tabName = "post_tab",
+                fluidRow(
+                  ####################################################################################
+                  # New box
+                  box(title=textOutput('title_display'),width=12,status = "success", solidHeader= TRUE,
+                      #textOutput('title_available'),
+                      uiOutput("list_thres"),
+                      uiOutput("RefreshButton"),
+                      uiOutput("DisplayButtonAvailable"),
+                      leafletOutput("display_available_res")
                   )
                   ####################################################################################
                   # End of the Box
