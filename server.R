@@ -523,9 +523,9 @@ shinyServer(function(input, output, session) {
   
   ############### Display the CURRENT results as map
   output$display_res  <-  renderLeaflet({
-<<<<<<< HEAD
-    req(input$time_series_dir)
-=======
+
+    #req(input$time_series_dir)
+
     req(bfast_res())
     print('Check: Display the map')
     if (is.null(dis_result$c)) return()
@@ -575,7 +575,7 @@ shinyServer(function(input, output, session) {
   ############### Display the AVAILABLE results as map
   output$display_available_res <-  renderLeaflet({
     req(input$bfastDisplayButton_a)
->>>>>>> postprocessing
+
     print('Check: Display the map')
     if (is.null(dis_result$a)) return()
     
