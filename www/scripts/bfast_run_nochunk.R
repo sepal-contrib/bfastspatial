@@ -24,7 +24,7 @@ chunkerize <- function(infile, outfile, xmin, ymin, xmax, ymax) {
            te=c(xmin, ymin, xmax, ymax), multi=TRUE, 
            output_Raster=TRUE,
            overwrite = TRUE,
-           ot="UInt16")
+           ot="Int16")
 }
 
 
@@ -102,7 +102,7 @@ for(the_dir in tiles){
         ouput  <- data_input_msk
         mask   <- stack_name
         
-        system(sprintf("gdalwarp -ot UInt16 -co COMPRESS=LZW -t_srs \"%s\" -te %s %s %s %s -tr %s %s %s %s -overwrite",
+        system(sprintf("gdalwarp -ot Int16 -co COMPRESS=LZW -t_srs \"%s\" -te %s %s %s %s -tr %s %s %s %s -overwrite",
                        proj4string(raster(mask)),
                        extent(raster(mask))@xmin,
                        extent(raster(mask))@ymin,
