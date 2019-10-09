@@ -107,6 +107,10 @@ shinyUI(
                                     # end tabPanel
                            ),
                            tabPanel(textOutput('title_download_testdata'),
+                                    selectInput(
+                                      'example_dataset','',choices = c("Liberia example","Kenya example 1","Kenya example 2")),
+                                    # uiOutput("chosen_dataset"),
+                                    
                                     actionButton("download_test_button",
                                                  textOutput('download_testdata_button')),
                                     uiOutput("dynUI_download_test")

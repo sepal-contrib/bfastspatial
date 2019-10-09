@@ -88,9 +88,23 @@ shinyServer(function(input, output, session) {
     withProgress(message = paste0('Downloading data in ', dirname("~/bfast_data_test/")),
                  value = 0,
                  {
-                   system("wget -O ~/bfast_data_test/bfast_data_test.zip  https://github.com/openforis/data_test/raw/master/bfast_data_test.zip")
-                   system("unzip -o ~/bfast_data_test/bfast_data_test.zip  -d ~/bfast_data_test/ ")
+                   if(input$example_dataset == "Liberia example"){
+                   system("wget -O ~/bfast_data_test/bfast_data_test.zip https://www.dropbox.com/s/1f8s15rg6er2y2g/liberia_ts_example.zip")
+                   system("unzip -o ~/bfast_data_test/bfast_data_test.zip -d ~/bfast_data_test/")
                    system("rm ~/bfast_data_test/bfast_data_test.zip")
+                   }
+                   if(input$example_dataset == "Kenya example 2"){
+                     system("wget -O ~/bfast_data_test/kn_ts_smallarea2_ndvi_2013_2019.zip https://www.dropbox.com/s/r9stcaaf59i4nz9/kn_ts_smallarea2_ndvi_2013_2019.zip")
+                     system("unzip -o ~/bfast_data_test/kn_ts_smallarea2_ndvi_2013_2019.zip  -d ~/bfast_data_test/ ")
+                     system("rm ~/bfast_data_test/kn_ts_smallarea2_ndvi_2013_2019.zip")
+                   }
+                   if(input$example_dataset == "Kenya example 1"){
+                     system("wget -O ~/bfast_data_test/bfast_data_kenya1_test.zip https://www.dropbox.com/s/jsxwp8rp3tlcyc2/TS_kenya_L8_2013_2018.zip")
+                     system("unzip -o ~/bfast_data_test/bfast_data_kenya1_test.zip  -d ~/bfast_data_test/ ")
+                     system("rm ~/bfast_data_test/bfast_data_kenya1_test.zip")
+                   } 
+              
+                   
                  })
     
     list.files("~/bfast_data_test/")
