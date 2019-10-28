@@ -209,7 +209,7 @@ shinyServer(function(input, output, session) {
                 label = textOutput("text_option_h_date_break"),
                 min = as.numeric(beg_year()),
                 max = as.numeric(end_year()),
-                value = as.numeric(beg_year()),
+                value = c(as.numeric(beg_year()),(as.numeric(beg_year())+as.numeric(end_year()))/2),
                 sep = ""
     )
   })
@@ -222,9 +222,9 @@ shinyServer(function(input, output, session) {
     req(input$time_series_dir)
     sliderInput(inputId = 'option_m_beg',
                 label = textOutput("text_option_m_date_break"),
-                min = as.numeric(input$option_h_beg),
+                min = as.numeric(input$option_h_beg)[2]+1,
                 max = as.numeric(end_year()),
-                value = c((as.numeric(input$option_h_beg) + as.numeric(end_year()))/2,as.numeric(end_year())),
+                value = c((as.numeric(input$option_h_beg)[2]+1)/2,as.numeric(end_year())),
                 sep = ""
     )
   })
@@ -333,7 +333,8 @@ shinyServer(function(input, output, session) {
     
     data_dir            <- paste0(data_dir(),"/")
     
-    historical_year_beg <- as.numeric(input$option_h_beg)
+    historical_year_beg <- as.numeric(input$option_h_beg)[1]
+    historical_year_end <- as.numeric(input$option_h_beg)[2]
     monitoring_year_beg <- as.numeric(input$option_m_beg)[1]
     monitoring_year_end <- as.numeric(input$option_m_beg)[2]
     
@@ -362,7 +363,7 @@ shinyServer(function(input, output, session) {
                     mask_opt,'_',
                     mode,'_',
                     #chunk_size,'_',
-                    historical_year_beg,'_',monitoring_year_beg,'_',monitoring_year_end)
+                    historical_year_beg,'_',historical_year_end,'_',monitoring_year_beg,'_',monitoring_year_end)
     
     
     tiles <- input$option_tiles
@@ -373,7 +374,7 @@ shinyServer(function(input, output, session) {
     
     dir.create(res_dir,recursive = T,showWarnings = F)
     
-    save(rootdir,data_dir,res_dir,historical_year_beg,monitoring_year_end,monitoring_year_beg,order,history,mode,
+    save(rootdir,data_dir,res_dir,historical_year_beg,historical_year_end,monitoring_year_end,monitoring_year_beg,order,history,mode,
          #chunk_size,
          type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
          file = paste0(res_dir,"my_work_space.RData"))
@@ -468,7 +469,7 @@ shinyServer(function(input, output, session) {
                                
                                system(paste0('echo "Preparing data..." > ', progress_file))
                                
-                               system(paste0("nohup Rscript www/scripts/bfast_run_nochunk.R ",data_dir,' ',progress_file,' ',res_dir,' & '))
+                               system(paste0("nohup Rscript www/scripts/bfast_run_nochunk_edit.R ",data_dir,' ',progress_file,' ',res_dir,' & '))
                                #system(paste0("nohup Rscript www/scripts/bfast_run_chunks_warp.R ",data_dir,' ',progress_file,' ',res_dir,' & '))
                                #system(paste0("nohup Rscript www/scripts/bfast_run_chunks_translate.R ",data_dir,' & '))
                                
