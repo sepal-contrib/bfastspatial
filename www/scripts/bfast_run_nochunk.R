@@ -175,7 +175,7 @@ for(the_dir in tiles){
           
           bfasttime <- system.time(bfmSpatial(stack, 
                                               start        = c(monitoring_year_beg[1], 1),
-                                              monend       = c(monitoring_year_end[1], 1),
+                                              monend       = c(monitoring_year_end[1], 365),
                                               dates        = dates,
                                               formula      = as.Formula(formula),
                                               order        = order, 
