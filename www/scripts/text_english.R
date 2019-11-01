@@ -25,7 +25,7 @@ output$display_button_a         <- reactive({'Display selected results'})
 output$text_refresh_a           <- reactive({'Refresh list'})
 output$display_button_c         <- reactive({'Display BFAST results from this session'})
 
-output$text_option_h_date_break <- reactive({"History beginning year"})
+output$text_option_h_date_break <- reactive({"History start and end years"})
 output$text_option_m_date_break <- reactive({"Monitoring start and end years"})
 output$seq_checkbox             <- reactive({"Compute sequential?"})
 # output$checkbox_usemask         <- reactive({"Use a mask?"})

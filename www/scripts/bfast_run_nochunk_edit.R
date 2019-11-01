@@ -87,7 +87,6 @@ for(the_dir in tiles){
     start_time   <- format(Sys.time(), "%Y/%m/%d %H:%M:%S")
     nf_start_time <- Sys.time()
     
-    
     ################# MULTIPLY THE INPUT BY THE FNF MASK IF NEEDED
     tryCatch({
       if(mask == "FNF Mask" ){
@@ -159,24 +158,53 @@ for(the_dir in tiles){
     ############# NAME OF RESULT FOR THE TILE
     result       <- bfast_name <- paste0(results_directory,"bfast_st_",i,"_p_",title,".tif")
     
+    
     ############# IF RESULT EXISTS, SKIP
     if(!file.exists(result)){
       
       ############# PROCESS IF OVERALL APPROACH CHOSEN
       if(mode == "Overall"){
         
-       start_time <- format(Sys.time(), "%Y/%m/%d %H:%M:%S")
+        start_time <- format(Sys.time(), "%Y/%m/%d %H:%M:%S")
         stack      <- brick(stack_name)
+        
+        # get list of years of raster dates only
+        dates_y <- substr(dates,1,4)
+        
+        ############# cut historical start
+        # only if earlier images available than start of historical period
+        if(historical_year_beg>as.numeric(dates_y[1])){
+          
+          # get years to delete before start of historical period
+          y_delete_h <- seq(dates_y[1],historical_year_beg-1) 
+          
+          # return vector of same length as dates_y, 0 if no match, 1 if match
+          is_year_h <- match(dates_y,y_delete_h, nomatch=0)
+          
+          min_ind_h <- which(is_year_h==1)[1] # first match index
+          max_ind_h <- tail(which(is_year_h==max(is_year_h)),n=1) # last match index
+          
+          # drop "gap year" raster layers to be ignored
+          stack_year <- dropLayer(stack,c(min_ind_h:max_ind_h))
+          print(paste0("   Layers from index ",min_ind_h," to ",max_ind_h," (",dates[min_ind_h]," to ",dates[max_ind_h],") are deleted from the time series stack before the start of the historical period."))
+          
+          # modify dates accordingly and save as csv
+          dates <- dates[is_year_h==0]
+          
+          } else {
+          print("   No layers were deleted before the start of the historical period.")
+        } # end if delete until start of historical period
+        
         ############# cut historical end 
         if(historical_year_end+1!=monitoring_year_beg){
           
-          # get list of years of raster dates only
-          dates_y <- substr(dates,1,4) 
+          # get list of years of raster dates only (again as might be changed above)
+          dates_y <- substr(dates,1,4)
           
-          # years to delete between fixed monitoring period and current monitoring year
-          y_delete <- seq((historical_year_end+1),monitoring_year_beg-1) # years to delete between fixed monitoring period and current monitoring year
+          # get years to delete between end of historical period and start of monitoring period
+          y_delete <- seq((historical_year_end+1),monitoring_year_beg-1) 
           
-          # returns vector of same length as dates_y, 0 if no match, 1 if match
+          # return vector of same length as dates_y, 0 if no match, 1 if match
           is_year <- match(dates_y,y_delete, nomatch=0)
           
           min_ind <- which(is_year==1)[1] # first match index
@@ -184,18 +212,21 @@ for(the_dir in tiles){
           
           # drop "gap year" raster layers to be ignored
           stack_year_2 <- dropLayer(stack,c(min_ind:max_ind))
-          print(paste0("Year: ",monitoring_year_beg," to ",monitoring_year_end,"; Layers from index ",min_ind," to ",max_ind," (",dates[min_ind]," to ",dates[max_ind],") are deleted from the time series stack for a stable historical period."))
+          print(paste0("   Layers from index ",min_ind," to ",max_ind," (",dates[min_ind]," to ",dates[max_ind],") are deleted from the time series stack between end of historical and start of monitoring period."))
           
-          # modify dates accordingly and save as csv
+          # modify dates accordingly 
           dates_2 <- dates[is_year==0]
-          write.table(dates_2, file = paste0(results_directory,"dates_",monitoring_year_beg,"_",monitoring_year_end,".csv"),row.names=FALSE, col.names=FALSE, sep=",")
           
         } else { # use original time stack and dates
           stack_year_2 <- stack
           dates_2 <- dates
-          print(paste0("year: ",monitoring_year_beg," to ",monitoring_year_end,"; No layers deleted from the time series stack for a stable historical period."))
+          print("   No layers are deleted from the time series stack between end of historical and start of monitoring period.")
           
         } # end if fixed historical period
+        
+        # write final dates to csv
+        write.table(dates_2, file = paste0(results_directory,"dates_",monitoring_year_beg,"_",monitoring_year_end,".csv"),row.names=FALSE, col.names=FALSE, sep=",") 
+        # different name? write original dates file as well?
         
         ############# CREATE A FUNCTION TO IMPLEMENT BFAST
         loop_process <- function(){
@@ -221,12 +252,14 @@ for(the_dir in tiles){
           write(paste(paste0("End time:",'\t',format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
                       paste0("Bfast time:",'\t',bfasttime[[3]]/60),
                       paste0("Total time:",'\t',difftime),
-                      paste0("Dates:",'\t',length(dates))
+                      paste0("Dates (original time stack):",'\t',length(dates)),
+                      paste0("Dates (after reducing time stack):", '\t',length(dates_2))
                       ,sep="\n"),
                 log_filename,
                 append=TRUE)
           
           ############# WRITE PERFORMANCE PARAMETERS
+          # more details/labels?
           write(paste(basename(data_dir),
                       title,
                       cores,
@@ -243,7 +276,6 @@ for(the_dir in tiles){
         }
         
         tryCatch({
-          #print(paste0("    Processing  "))
           
           loop_process()
           
@@ -264,8 +296,6 @@ for(the_dir in tiles){
                 append=TRUE)
         })
         
-        #print(paste0("    Finished  ",chunk))
-        
         result <- bfast_name
         
         total_time <- Sys.time()-nf_start_time
@@ -275,8 +305,8 @@ for(the_dir in tiles){
         ############# WRITE TIMING INFO TO A LOG
         write(paste0("This process started on ", start_time,
                      " and ended on ",format(Sys.time(),"%Y/%m/%d %H:%M:%S"),
-                     " Total time for the tile: ",total_time, 
-                      " Number of CPUs: ",detectCores()
+                     "; Total time for the tile: ",total_time, 
+                      "; Number of CPUs: ",detectCores()
         ),
         log_filename, 
         append=TRUE)
@@ -380,11 +410,8 @@ for(the_dir in tiles){
           lapply(monitoring_start:monitoring_end,
                  function(year){
                    
-                   print(paste0("    Processing year:  ",year))
-                   
                    ############# LOOP THROUGH CHUNKS
                    outfl <- paste0(results_directory,"bfast_st_",i,"_p_",title,"_year",year,'.tif')
-                   
                    
                    if(!file.exists(outfl)){
                      
@@ -392,25 +419,52 @@ for(the_dir in tiles){
                      
                      stack_year   <- brick(timeStack)
                      
+                     # get list of years of raster dates only
+                     dates_y <- substr(dates,1,4)
+                     
                      print(paste0("    Processing year:  ",year))
                      
                      log_year_filename <- paste0(results_directory,"log_st_",i,"_year_",year,"_params_",title, ".log")
                      
-                     ##### modify raster brick for stable monitoring period #####
-                     
-                     # set variables manually - edit later (incl. position) once options in UI are available
-                     fixed_monitoring <- TRUE 
-                     historical_year_end <- history_end # historical period ends before monitoring period starts
-                     
-                     if(fixed_monitoring==TRUE & year!=(historical_year_end+1)){
+                     ############# cut historical start
+                     # only if earlier images available than start of historical period
+                     if(historical_year_beg>as.numeric(dates_y[1])){
                        
-                       # get list of years of raster dates only
+                       # get years to delete before start of historical period
+                       y_delete_h <- seq(dates_y[1],historical_year_beg-1) 
+                       
+                       # return vector of same length as dates_y, 0 if no match, 1 if match
+                       is_year_h <- match(dates_y,y_delete_h, nomatch=0)
+                       
+                       min_ind_h <- which(is_year_h==1)[1] # first match index
+                       max_ind_h <- tail(which(is_year_h==max(is_year_h)),n=1) # last match index
+                       
+                       # drop "gap year" raster layers to be ignored
+                       stack_year <- dropLayer(stack_year,c(min_ind_h:max_ind_h))
+                       print(paste0("      Layers from index ",min_ind_h," to ",max_ind_h," (",dates[min_ind_h]," to ",dates[max_ind_h],") are deleted from the time series stack before the start of the historical period."))
+                       
+                       # modify dates accordingly 
+                       dates <- dates[is_year_h==0]
+                       
+                       # create log info
+                       str_y_del_1 <- paste0("  Layers from index ",min_ind_h," to ",max_ind_h," (",dates[min_ind_h]," to ",dates[max_ind_h],") were deleted from the time series stack before the start of the historical period.")
+                       
+                     } else {
+                       print("      No layers were deleted before the start of the historical period.")
+                       str_y_del_1 <- "  No layers were deleted from the time series stack before the historical period."
+                     } # end if delete until start of historical # end if delete until start of historical
+                     
+                     ############# Modify raster brick for stable monitoring period
+                     
+                     if(hist_end_fix==TRUE & year!=(historical_year_end+1)){
+                       
+                       # get list of years of raster dates only (again as it might have been changed above)
                        dates_y <- substr(dates,1,4) 
                        
-                       # years to delete between fixed monitoring period and current monitoring year
+                       # get years to delete between fixed monitoring period and current monitoring year
                        y_delete <- seq((historical_year_end+1),year-1) # years to delete between fixed monitoring period and current monitoring year
                        
-                       # returns vector of same length as dates_y, 0 if no match, 1 if match
+                       # return vector of same length as dates_y, 0 if no match, 1 if match
                        is_year <- match(dates_y,y_delete, nomatch=0)
                        
                        min_ind <- which(is_year==1)[1] # first match index
@@ -418,21 +472,26 @@ for(the_dir in tiles){
                        
                        # drop "gap year" raster layers to be ignored
                        stack_year_2 <- dropLayer(stack_year,c(min_ind:max_ind))
-                       print(paste0("Year: ",year,"; Layers from index ",min_ind," to ",max_ind," (",dates[min_ind]," to ",dates[max_ind],") are deleted from the time series stack for a stable historical period."))
+                       print(paste0(      "Layers from index ",min_ind," to ",max_ind," (",dates[min_ind]," to ",dates[max_ind],") are deleted from the time series stack between historical and this sequential monitoring period."))
                        
                        # modify dates accordingly and save as csv
                        dates_2 <- dates[is_year==0]
                        write.table(dates_2, file = paste0(results_directory,"dates_",year,".csv"),row.names=FALSE, col.names=FALSE, sep=",")
                        
+                       # create log info
+                       str_y_del_2 <- paste0("  Layers from index ",min_ind," to ",max_ind," (",dates[min_ind]," to ",dates[max_ind],") were deleted from the time series stack between historical and this sequential monitoring period.")
+                       
                      } else { # use original time stack and dates
                        stack_year_2 <- stack_year
                        dates_2 <- dates
-                       print(paste0("year: ",year,"; No layers deleted from the time series stack for a stable historical period."))
+                       print(paste0("      No layers were deleted from the time series stack between historical and this sequential monitoring period."))
+                       
+                       # create log info
+                       str_y_del_2 <- "  No layers were deleted from the time series stack between historical and this sequential monitoring period."
                        
                      } # end if fixed historical period
                      
-                     ##### run bfast sequentially #####
-                     
+                     ############# run bfast sequentially 
                      loop_process <- function(){
                        bfm_year <- bfmSpatial(stack_year_2, 
                                               start    = c(year, 1), 
@@ -440,33 +499,24 @@ for(the_dir in tiles){
                                               dates    = dates_2,
                                               formula  = as.Formula(formula),
                                               order    = order, 
-                                              history  = history,                ### set to fixed start of history??
+                                              history  = history,
                                               filename = outfl,
                                               type     = type,
+                                              returnLayers = returnLayers,
                                               mc.cores = cores)
                        
-                       ############# WRITE THE TIME TO A LOG
-                       write(paste0("Stack: ",i,
-                                    " Start time: ",start_time,
-                                    "; End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")
-                       ),
-                       log_year_filename,
-                       append=TRUE)
-                       
-                       # WRITE INFO ON DELETED YEARS IN TIME STACK
-                       if(fixed_monitoring==TRUE & year!=(historical_year_end+1)){
-                         str_y_del <- paste0("Layers from index ",min_ind," to ",max_ind," (",dates[min_ind]," to ",dates[max_ind],") were deleted from the time series stack for a stable historical period.")
-                       } else {
-                         str_y_del <- paste0("No layers were deleted from the time series stack for a stable historical period.")
-                       }
-                       
-                       write(str_y_del,
-                             log_year_filename,
+                       ############# WRITE THE TIME AND INFO ON DELETED YEARS IN TIME STACK TO A LOG
+                       write(paste(paste0("Stack: ",i,"; Year: ",year),
+                                   paste0(" Start time: ",start_time,"; End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
+                                   str_y_del_1,
+                                   str_y_del_2,
+                                   sep="\n"),
+                             file=log_year_filename,
                              append=TRUE)
                        
                        bfm_year #??
                        
-                     }
+                     } # end function loop_process()
                      
                      tryCatch({ 
                        
@@ -509,7 +559,7 @@ for(the_dir in tiles){
           ))
         
         
-        ## Post-processing ####
+        #### Post-processing ####
         # output the maximum of the breakpoint dates for all sequential outputs
         numfiles<- length(list.files(results_directory,pattern='.tif'))
         outputfile   <- paste0(results_directory,"bfast_",title,'_breakpoints.tif')
@@ -562,9 +612,10 @@ for(the_dir in tiles){
 ##########################################################################################
 
 
-print("Post-processing")
 ############# PROCESS IF OVERALL APPROACH CHOSEN
 if(mode == "Overall"){
+  
+  print("Post-processing")
   
   ############### MAKE A LIST OF RESULTS
   list_res <- list.files(res_dir,pattern = glob2rx(paste0("bfast*",title,".tif")),recursive = T)
@@ -658,11 +709,14 @@ if(mode == "Overall"){
                  paste0(res_dir,"tmp*.tif"))
          )
   
+  overall_time <- Sys.time() - overall_start_time
+  print(overall_time)
+  
+  print("Done with post-processing, you can click on display")
 
-}else{}
+}else{
+  overall_time <- Sys.time() - overall_start_time
+  print(overall_time)
+}
 
-overall_time <- Sys.time() - overall_start_time
-print(overall_time)
-
-print("Done with post-processing, you can click on display")
 sink()

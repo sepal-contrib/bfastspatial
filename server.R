@@ -288,8 +288,19 @@ shinyServer(function(input, output, session) {
     selectInput(inputId = "option_sequential",
                 label = "Computation mode",
                 choices = c("Overall","Sequential"),
-                selected= "Overall"
+                selected = "Overall"
     )
+  })
+  
+  ################################# FIXED END OF HISTORICAL PERIOD
+  # Only if SEQUENTIAL mode is chosen
+  output$ui_option_hist_end_fix <- renderUI({
+    req(input$time_series_dir)
+    req(mode() == "Sequential")
+    checkboxInput(inputId = "option_hist_end_fix",
+                  label = "Use fixed end year for the historical period (recommended)",
+                  value = TRUE
+                  )
   })
   
   ################################# OPTION MASK
@@ -341,6 +352,7 @@ shinyServer(function(input, output, session) {
     order               <- as.numeric(input$option_order)
     history             <- as.character(input$option_history)
     mode                <- as.character(input$option_sequential)
+    hist_end_fix        <- as.logical(input$option_hist_end_fix)
     type                <- as.character(input$option_type)
     mask                <- as.character(input$option_useMask)
     formula_elements    <- unlist(input$option_formula)
@@ -374,7 +386,7 @@ shinyServer(function(input, output, session) {
     
     dir.create(res_dir,recursive = T,showWarnings = F)
     
-    save(rootdir,data_dir,res_dir,historical_year_beg,historical_year_end,monitoring_year_end,monitoring_year_beg,order,history,mode,
+    save(rootdir,data_dir,res_dir,historical_year_beg,historical_year_end,monitoring_year_end,monitoring_year_beg,order,history,mode,hist_end_fix,
          #chunk_size,
          type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
          file = paste0(res_dir,"my_work_space.RData"))
