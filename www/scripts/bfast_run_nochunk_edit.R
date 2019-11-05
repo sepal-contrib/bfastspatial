@@ -406,12 +406,29 @@ for(the_dir in tiles){
         
         cores <- detectCores()
         
-        bfmSpatialSq <- function(history_start, history_end,monitoring_start, monitoring_end, timeStack, ...){
-          lapply(monitoring_start:monitoring_end,
+        bfmSpatialSq <- function(history_start, history_end, monitoring_start, monitoring_end, nyear_seq, timeStack, ...){
+          
+          ### check whether length of whole monitoring period and sequential blocks come out even --> warning
+          y_remainder <- (monitoring_end-monitoring_start+1) %% nyear_seq
+          if(y_remainder!=0){
+            print(paste0("   ### WARNING: Length of monitoring period and sequential blocks do not come out even. The last ",
+                         y_remainder," year(s) of the selected monitoring period will be dropped. ###"))
+          }
+          
+          ### create vector with start years of sequential monitoring periods for lapply
+          mon_start_years <- as.integer(seq(from=monitoring_start, to=(monitoring_end-(nyear_seq-1)), by=nyear_seq))
+          
+          lapply(mon_start_years,
                  function(year){
                    
                    ############# LOOP THROUGH CHUNKS
-                   outfl <- paste0(results_directory,"bfast_st_",i,"_p_",title,"_year",year,'.tif')
+                   
+                   # define output file name
+                   if(nyear_seq == 1){
+                     outfl <- paste0(results_directory,"bfast_st_",i,"_p_",title,"_year_",year,'.tif') 
+                   } else {
+                     outfl <- paste0(results_directory,"bfast_st_",i,"_p_",title,"_years_",year,"_",(year+nyear_seq-1),'.tif') 
+                   }
                    
                    if(!file.exists(outfl)){
                      
@@ -424,7 +441,12 @@ for(the_dir in tiles){
                      
                      print(paste0("    Processing year:  ",year))
                      
-                     log_year_filename <- paste0(results_directory,"log_st_",i,"_year_",year,"_params_",title, ".log")
+                     # define log file name
+                     if(nyear_seq == 1){
+                       log_year_filename <- paste0(results_directory,"log_st_",i,"_year_",year,"_params_",title, ".log")
+                     } else {
+                       log_year_filename <- paste0(results_directory,"log_st_",i,"_years_",year,"_",(year+nyear_seq-1),"_params_",title, ".log")
+                     }
                      
                      ############# cut historical start
                      # only if earlier images available than start of historical period
@@ -452,7 +474,7 @@ for(the_dir in tiles){
                      } else {
                        print("      No layers were deleted before the start of the historical period.")
                        str_y_del_1 <- "  No layers were deleted from the time series stack before the historical period."
-                     } # end if delete until start of historical # end if delete until start of historical
+                     } # end if delete until start of historical 
                      
                      ############# Modify raster brick for stable monitoring period
                      
@@ -472,7 +494,7 @@ for(the_dir in tiles){
                        
                        # drop "gap year" raster layers to be ignored
                        stack_year_2 <- dropLayer(stack_year,c(min_ind:max_ind))
-                       print(paste0(      "Layers from index ",min_ind," to ",max_ind," (",dates[min_ind]," to ",dates[max_ind],") are deleted from the time series stack between historical and this sequential monitoring period."))
+                       print(paste0("      Layers from index ",min_ind," to ",max_ind," (",dates[min_ind]," to ",dates[max_ind],") are deleted from the time series stack between historical and this sequential monitoring period."))
                        
                        # modify dates accordingly and save as csv
                        dates_2 <- dates[is_year==0]
@@ -484,7 +506,11 @@ for(the_dir in tiles){
                      } else { # use original time stack and dates
                        stack_year_2 <- stack_year
                        dates_2 <- dates
+                       
                        print(paste0("      No layers were deleted from the time series stack between historical and this sequential monitoring period."))
+                       
+                       # write dates file
+                       write.table(dates_2, file = paste0(results_directory,"dates_",year,".csv"),row.names=FALSE, col.names=FALSE, sep=",")
                        
                        # create log info
                        str_y_del_2 <- "  No layers were deleted from the time series stack between historical and this sequential monitoring period."
@@ -495,7 +521,7 @@ for(the_dir in tiles){
                      loop_process <- function(){
                        bfm_year <- bfmSpatial(stack_year_2, 
                                               start    = c(year, 1), 
-                                              monend   = c(year + 1, 1),
+                                              monend   = c(year + nyear_seq, 1), 
                                               dates    = dates_2,
                                               formula  = as.Formula(formula),
                                               order    = order, 
@@ -505,8 +531,8 @@ for(the_dir in tiles){
                                               returnLayers = returnLayers,
                                               mc.cores = cores)
                        
-                       ############# WRITE THE TIME AND INFO ON DELETED YEARS IN TIME STACK TO A LOG
-                       write(paste(paste0("Stack: ",i,"; Year: ",year),
+                       ############# WRITE THE TIME AND INFO ON MONITORING LENGTH + DELETED YEARS TO A LOG
+                       write(paste(paste0("Stack: ",i,"; Year: ",year,"; Length of sequential monitoring period: ",nyear_seq," year(s)"),
                                    paste0(" Start time: ",start_time,"; End time: ",format(Sys.time(),"%Y/%m/%d %H:%M:%S")),
                                    str_y_del_1,
                                    str_y_del_2,
@@ -527,7 +553,12 @@ for(the_dir in tiles){
                      },error=function(e){
                        print(paste0("      Failed process on stack ",i))
                        
-                       fail_log_year_filename <- paste0(results_directory,"fail_stack_",i,"_year_",year,"_params_",title, ".log")
+                       # define fail log file name
+                       if(nyear_seq == 1){
+                         fail_log_year_filename <- paste0(results_directory,"fail_stack_",i,"_year_",year,"_params_",title, ".log")
+                       } else {
+                         fail_log_year_filename <- paste0(results_directory,"fail_stack_",i,"_years_",year,"_",(year+nyear_seq-1),"_params_",title, ".log")
+                       }
                        
                        write(paste0("Failed Stack: ",
                                     i,
@@ -538,7 +569,6 @@ for(the_dir in tiles){
                      })
                      
                    } ### END OF CHUNK EXISTS
-                   
                    
                    outfl #??
                    
@@ -555,19 +585,22 @@ for(the_dir in tiles){
             historical_year_end,
             monitoring_year_beg,
             monitoring_year_end,
+            nyear_seq,
             stack_name
           ))
         
         
         #### Post-processing ####
+        print("Post-processing")
+        
         # output the maximum of the breakpoint dates for all sequential outputs
-        numfiles<- length(list.files(results_directory,pattern='.tif'))
+        numfiles     <- length(list.files(results_directory,pattern='.tif'))
         outputfile   <- paste0(results_directory,"bfast_",title,'_breakpoints.tif')
         
         system(sprintf("gdal_calc.py %s --co=COMPRESS=LZW --type=Float32 --overwrite --outfile=%s --calc=\"%s\"",
                        paste(paste0('-',LETTERS[1:numfiles],' ',list.files(results_directory,pattern='.tif',full.names = T), ' --',LETTERS[1:numfiles],'_band=1'),collapse=" "),
                        outputfile,
-                       if(LETTERS[numfiles]>3){
+                       if(numfiles>3){ #if(LETTERS[numfiles]>3){ # always TRUE, bug??
                          nummax<- numfiles-2
                          paste(
                            paste(replicate(nummax, "maximum"),'(', collapse = ""),
@@ -575,12 +608,11 @@ for(the_dir in tiles){
                            paste( ',',LETTERS[3:numfiles],')', collapse = "")
                            , collapse = "")
                          
-                       }else if(LETTERS[numfiles]==2){
-                         print(paste('maximum(',LETTERS[1:numfiles][1],',',LETTERS[1:numfiles][2],')'))
+                       }else if(numfiles==2){ #if(LETTERS[numfiles]==2){
+                         paste('maximum(',LETTERS[1:numfiles][1],',',LETTERS[1:numfiles][2],')') #print(paste('maximum(',LETTERS[1:numfiles][1],',',LETTERS[1:numfiles][2],')'))
                          
-                       }else if(LETTERS[numfiles]==1){
-                         print(paste('maximum(',LETTERS[1:numfiles][1],')'))
-                         
+                       }else if(numfiles==1){ #if(LETTERS[numfiles]==1){
+                         paste('maximum(',LETTERS[1:numfiles][1],')') #print(paste('maximum(',LETTERS[1:numfiles][1],')'))
                        }
                        
         ))

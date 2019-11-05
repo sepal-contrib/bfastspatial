@@ -303,6 +303,20 @@ shinyServer(function(input, output, session) {
                   )
   })
   
+  ################################# NUMBER OF YEARS MONITORING BLOCKS
+  # Only if SEQUENTIAL mode is chosen
+  output$ui_option_nyear_seq <- renderUI({
+    req(input$time_series_dir)
+    req(mode() == "Sequential")
+    numericInput(inputId = "option_nyear_seq",
+                 label = "Length of sequential monitoring blocks (in years)",
+                 value = 1,
+                 min = 1,
+                 max = 20,
+                 step = 1
+    )
+  })
+  
   ################################# OPTION MASK
   output$ui_option_useMask <- renderUI({
     req(input$time_series_dir)
@@ -353,6 +367,7 @@ shinyServer(function(input, output, session) {
     history             <- as.character(input$option_history)
     mode                <- as.character(input$option_sequential)
     hist_end_fix        <- as.logical(input$option_hist_end_fix)
+    nyear_seq           <- as.numeric(input$option_nyear_seq)
     type                <- as.character(input$option_type)
     mask                <- as.character(input$option_useMask)
     formula_elements    <- unlist(input$option_formula)
@@ -388,7 +403,7 @@ shinyServer(function(input, output, session) {
     
     save(rootdir,data_dir,res_dir,historical_year_beg,historical_year_end,monitoring_year_end,monitoring_year_beg,order,history,mode,hist_end_fix,
          #chunk_size,
-         type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
+         nyear_seq,type,formula_elements,type_num,formula,title,tiles,mask,mask_opt,mask_file_path,returnLayers,
          file = paste0(res_dir,"my_work_space.RData"))
     
     title
