@@ -46,16 +46,17 @@ for(the_dir in tiles){
   
   ############### Get the list of stacks inside the tile
   main_stack_name <- paste0(the_path_dir,'/','stack.vrt')
-  sub_stacks <- list.files(the_path_dir,pattern="_stack.vrt")
+  sub_stacks <- list.files(the_path_dir,pattern="_stack.vrt",full.names = T)
+
+  
   list_stack <- list()
   
-  if(length(sub_stacks) > 1){
-    list_stack <- paste0(the_path_dir,'/',sub_stacks)
-  }else{
-    if(file.exists(main_stack_name)){
-      list_stack <- main_stack_name}}
+  if(length(sub_stacks) < 1){
+    sub_stacks <- list.files(the_path_dir,pattern="stack.vrt",recursive = T,full.names = T)
+    sub_stacks <- sub_stacks[sub_stacks !=main_stack_name]
+  }
   
-  list_stack <- paste0(the_path_dir,'/',sub_stacks)
+  list_stack <- sub_stacks
   
   ################# CREATE THE MAIN OUTPUT DIRECTORY
   output_directory <- paste0(res_dir,the_dir,"/")

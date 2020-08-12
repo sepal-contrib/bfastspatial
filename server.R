@@ -572,11 +572,11 @@ shinyServer(function(input, output, session) {
       addProviderTiles("CartoDB.PositronOnlyLabels")%>% 
       
       addRasterImage(rf, colors = pal, opacity = 0.8, group='Results') %>%
-      
-      addLegend(colors=colorspal,
-                values = values(rf),
-                title = "BFAST results"
-                ,labels= lab) %>% 
+      ## LEGEND is not working -- to be fixed
+      # addLegend(colors=colorspal,
+      #           values = values(rf),
+      #           title = "BFAST results"
+      #           ,labels= lab) %>% 
       
       addLayersControl(
         overlayGroups = c("Results"),
