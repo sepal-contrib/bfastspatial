@@ -96,7 +96,7 @@ The parameters include:
     -   trend, a linear trend
 
 -   **Order parameter** – Specifies the order of the harmonic term, defaulting to 3.
--   **Type parameter** – Specifies the type of monitoring process. For additional documentation on the type parameter see the `strucchange package documentation<https://cran.r-project.org/web/packages/strucchange/index.html>`__. The options are:
+-   **Type parameter** – Specifies the type of monitoring process. For additional documentation on the type parameter see the `strucchange package documentation <https://cran.r-project.org/web/packages/strucchange/index.html>`__. The options are:
 
     -   Moving sums of residuals (MOSUM), where residuals are calculated as the difference between expected values and actual observations in a monitoring period based on OLS residuals.
     -   Cumulative sum (CUSUM), cumulative sums of standardized residuals (MOSUM uses a moving sum, while CUSUM uses a cumulative of the same residuals)
