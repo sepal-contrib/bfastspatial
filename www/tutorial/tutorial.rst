@@ -1,5 +1,6 @@
 Time series analysis
 ====================
+*Analyse the dynamics of satellite dense time series and overcome the major challenge of distinguishing land-cover change from seasonal phenological variations*
 
 Overview
 --------
