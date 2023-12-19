@@ -173,7 +173,7 @@ BFAST was computed over the following area in Indonesia over the years 2013–20
 .. thumbnail:: https://raw.githubusercontent.com/12rambau/bfastspatial/master/www/tutorial/img/result_band_3.png
     :group: bfastspatial
  
-Finally, you will find an additional layer called **Threshold. The thresholded magnitude is calculated using the magnitude output, calculating the mean magnitude value over the AOI and applying thresholds of up to +/- 4 standard deviations from the mean. The layer is a thematic, classification map which has values ranging from 0–10, corresponding to the legend below (you can see how to name them in the following figure).
+Finally, you will find an additional layer called **Threshold**. The thresholded magnitude is calculated using the magnitude output, calculating the mean magnitude value over the AOI and applying thresholds of up to +/- 4 standard deviations from the mean. The layer is a thematic, classification map which has values ranging from 0–10, corresponding to the legend below (you can see how to name them in the following figure).
 
 .. thumbnail:: https://raw.githubusercontent.com/12rambau/bfastspatial/master/www/tutorial/img/result_sigma.png
     :group: bfastspatial
